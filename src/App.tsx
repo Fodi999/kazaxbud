@@ -17,15 +17,33 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  approachItems,
   kits,
   materialCategories,
-  navItems,
   photoClasses,
   products,
   projects,
-  services,
 } from './data/site';
+import { dictionary, localeNames, locales, type Locale } from './data/i18n';
+
+type NavItem = {
+  label: string;
+  href: string;
+  index: string;
+};
+
+type CategoryCopy = {
+  title: string;
+  text: string;
+  bullets: string[];
+};
+
+type CatalogCardLabels = {
+  location: string;
+  price: string;
+  add: string;
+};
+
+const navLinks = ['#services', '#approach', '#materials', '#projects', '#contact'] as const;
 
 function useSectionMotion() {
   useEffect(() => {
@@ -100,13 +118,20 @@ function getCatalogSlugFromPath() {
   return slug ? decodeURIComponent(slug) : 'all';
 }
 
-function Header() {
+function Header({
+  locale,
+  onLocaleChange,
+}: {
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
+}) {
   const [time, setTime] = useState('');
+  const content = dictionary[locale];
 
   useEffect(() => {
     const update = () => {
       setTime(
-        new Intl.DateTimeFormat('ru-RU', {
+        new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : locale === 'kk' ? 'kk-KZ' : 'ru-RU', {
           timeZone: 'Asia/Almaty',
           hour: '2-digit',
           minute: '2-digit',
@@ -116,14 +141,31 @@ function Header() {
     update();
     const timer = window.setInterval(update, 30000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [locale]);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 grid grid-cols-[1fr_auto_1fr] items-center px-7 pt-7 md:px-12">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 grid grid-cols-[1fr_auto_1fr] items-start px-7 pt-7 md:items-center md:px-12">
       <Link className="pointer-events-auto text-[22px] font-black tracking-[-.04em] text-white mix-blend-difference" href="/#home">
         ALMABUILD PRO
       </Link>
-      <div className="hidden text-center text-sm font-black text-white mix-blend-difference md:block">ВРЕМЯ: {time}, АЛМАТЫ</div>
+      <div className="hidden text-center text-sm font-black text-white mix-blend-difference md:block">{content.timeLabel}: {time}, ALMATY</div>
+      <div className="pointer-events-auto justify-self-end rounded-lg bg-ink/75 p-1 text-white shadow-brutal backdrop-blur">
+        <div className="grid grid-cols-3 gap-1" aria-label="Language">
+          {locales.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={[
+                'min-h-9 min-w-10 rounded-md px-2 text-xs font-black transition',
+                locale === item ? 'bg-orange text-white' : 'text-white/72 hover:bg-white/12 hover:text-white',
+              ].join(' ')}
+              onClick={() => onLocaleChange(item)}
+            >
+              {localeNames[item]}
+            </button>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }
@@ -162,7 +204,7 @@ function MaskedTitle({
   );
 }
 
-function SideNav() {
+function SideNav({ navItems }: { navItems: NavItem[] }) {
   const [active, setActive] = useState('#services');
 
   useEffect(() => {
@@ -179,7 +221,7 @@ function SideNav() {
     );
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [navItems]);
 
   return (
     <nav className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 overflow-x-auto rounded-xl bg-paper/80 p-1 backdrop-blur md:left-auto md:right-12 md:top-12 md:bottom-auto md:grid md:w-40 md:bg-transparent md:p-0">
@@ -305,11 +347,13 @@ type Product = (typeof products)[number];
 function ProductCard({
   product,
   onAdd,
+  labels,
   featured = false,
   className = '',
 }: {
   product: Product;
   onAdd: (name: string) => void;
+  labels: CatalogCardLabels;
   featured?: boolean;
   className?: string;
 }) {
@@ -330,14 +374,14 @@ function ProductCard({
         <h2 className={`${featured ? 'text-[clamp(30px,2.3vw,46px)]' : 'text-[clamp(22px,1.45vw,30px)]'} max-w-[92%] font-black leading-[.9] tracking-[-.065em]`}>{product.title}</h2>
         <p className={`${featured ? 'text-base' : 'text-sm'} leading-tight text-white/78`}>{product.spec}</p>
         <div className="flex items-end justify-between gap-3 border-t border-white/25 pt-2 text-xs font-black">
-          <span className="max-w-[120px] text-white/72">Алматы / под заказ</span>
-          <strong className="text-right text-sm text-white">по запросу</strong>
+          <span className="max-w-[120px] text-white/72">{labels.location}</span>
+          <strong className="text-right text-sm text-white">{labels.price}</strong>
         </div>
         <Button
           className="mt-1 min-h-10 rounded-md bg-white px-3 text-sm font-black text-ink transition hover:bg-orange hover:text-white"
           onClick={() => onAdd(product.title)}
         >
-          Добавить в смету
+          {labels.add}
         </Button>
       </div>
     </Card>
@@ -346,16 +390,24 @@ function ProductCard({
 
 function CatalogPage({
   activeSlug,
+  locale,
   onOpenCatalog,
   onBack,
   onAddMaterial,
 }: {
   activeSlug: string;
+  locale: Locale;
   onOpenCatalog: (slug?: string) => void;
   onBack: () => void;
   onAddMaterial: (name: string) => void;
 }) {
-  const activeCategory = materialCategories.find((category) => category.slug === activeSlug);
+  const content = dictionary[locale];
+  const categoryCopy = content.categories as Record<string, CategoryCopy>;
+  const localizedCategories = materialCategories.map((category) => ({
+    ...category,
+    ...categoryCopy[category.slug],
+  }));
+  const activeCategory = localizedCategories.find((category) => category.slug === activeSlug);
   const visibleProducts = activeSlug === 'all'
     ? products
     : products.filter((product) => product.categorySlug === activeSlug);
@@ -364,21 +416,21 @@ function CatalogPage({
     <main>
       <section className="min-h-svh bg-porcelain px-6 pb-28 pt-24 md:px-12 lg:pr-[230px]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="tag">[СТРОЙМАТЕРИАЛЫ В АЛМАТЫ]</p>
+          <p className="tag">{content.catalog.tag}</p>
           <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={onBack}>
-            Назад на сайт
+            {content.catalog.back}
           </Button>
         </div>
         <div className="grid gap-6 lg:grid-cols-[1fr_minmax(360px,.45fr)]">
           <h1 className="text-[clamp(56px,8.5vw,160px)] font-black leading-[.78] tracking-tightest">
-            {activeCategory ? activeCategory.title : 'Каталог материалов'}
+            {activeCategory ? activeCategory.title : content.catalog.title}
           </h1>
           <div className="self-end">
             <p className="text-[clamp(18px,1.25vw,24px)] leading-tight text-muted">
-              Выберите стройматериалы в Алматы и добавьте позиции в смету проекта. Мы уточним наличие, объём, доставку и монтаж под ваш объект.
+              {content.catalog.text}
             </p>
             <Button className="btn-black btn-with-arrow mt-5 h-auto rounded-lg" type="button" onClick={() => scrollToId('#project-estimate')}>
-              <span>Перейти к смете</span>
+              <span>{content.catalog.toEstimate}</span>
               <ArrowBox />
             </Button>
           </div>
@@ -390,9 +442,9 @@ function CatalogPage({
             type="button"
             onClick={() => onOpenCatalog()}
           >
-            Все товары
+            {content.catalog.all}
           </Button>
-          {materialCategories.map((category) => (
+          {localizedCategories.map((category) => (
             <Button
               key={category.slug}
               className={`min-h-11 shrink-0 rounded-lg px-4 font-black ${activeSlug === category.slug ? 'bg-ink text-white' : 'bg-pill text-white hover:bg-ink'}`}
@@ -406,7 +458,7 @@ function CatalogPage({
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {visibleProducts.map((product) => (
-            <ProductCard key={product.title} product={product} onAdd={onAddMaterial} />
+            <ProductCard key={product.title} product={product} onAdd={onAddMaterial} labels={content.catalog} />
           ))}
         </div>
       </section>
@@ -417,9 +469,29 @@ function CatalogPage({
 export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string | null }) {
   useSectionMotion();
 
+  const [locale, setLocale] = useState<Locale>('ru');
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
   const estimateCount = estimateItems.length;
+  const content = dictionary[locale];
+  const navItems = useMemo<NavItem[]>(
+    () =>
+      navLinks.map((href, index) => ({
+        href,
+        index: String(index + 1).padStart(2, '0'),
+        label: content.nav[index],
+      })),
+    [content.nav],
+  );
+  const localizedServices = content.services.items.map(([title, text], index) => ({
+    index: `[0:${index + 1}]`,
+    title,
+    text,
+  }));
+  const localizedCategories = materialCategories.map((category) => ({
+    ...category,
+    ...(content.categories as Record<string, CategoryCopy>)[category.slug],
+  }));
 
   const addMaterial = (name: string) => {
     setEstimateItems((items) => [...items, name]);
@@ -438,6 +510,22 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
   }, []);
+
+  useEffect(() => {
+    const savedLocale = window.localStorage.getItem('almabuild-locale');
+    if (!savedLocale || !locales.includes(savedLocale as Locale)) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setLocale(savedLocale as Locale);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    window.localStorage.setItem('almabuild-locale', locale);
+  }, [locale]);
 
   const openCatalog = (slug = 'all') => {
     const path = slug === 'all' ? '/catalog' : `/catalog/${slug}`;
@@ -459,29 +547,31 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           key={product.title}
           product={product}
           onAdd={addMaterial}
+          labels={content.catalog}
           featured
           className="w-[min(88vw,680px)] min-w-[min(88vw,680px)] shrink-0 sm:w-[600px] sm:min-w-[600px] lg:w-[680px] lg:min-w-[680px]"
         />
       )),
-    [],
+    [content.catalog],
   );
 
   return (
     <>
-      <Header />
+      <Header locale={locale} onLocaleChange={setLocale} />
       <ScrollProgress />
-      <SideNav />
+      <SideNav navItems={navItems} />
       <Button
         className="fixed bottom-[82px] right-5 z-50 inline-flex min-h-12 items-center gap-3 rounded-lg bg-ink px-4 font-black text-white shadow-brutal md:bottom-8 md:right-12"
         type="button"
         onClick={() => scrollToId('#project-estimate')}
       >
-        Смета проекта <b className="grid size-8 place-items-center rounded-md bg-orange">{estimateCount}</b>
+        {content.estimateButton} <b className="grid size-8 place-items-center rounded-md bg-orange">{estimateCount}</b>
       </Button>
 
       {catalogSlug !== null ? (
         <CatalogPage
           activeSlug={catalogSlug}
+          locale={locale}
           onOpenCatalog={openCatalog}
           onBack={backToMaterials}
           onAddMaterial={addMaterial}
@@ -491,36 +581,36 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         <section id="home" data-motion-section className="motion-section scene-section screen grid content-center gap-6 bg-ink px-6 py-24 text-white md:px-12 lg:pr-[230px]">
           <SceneLayer photo="photo-building" dark />
           <MaskedTitle className="max-w-[1180px] text-[clamp(56px,5.85vw,116px)] font-black leading-[.88] tracking-tightest">
-            Отделка и строительство магазинов в Алматы под ключ
+            {content.home.title}
           </MaskedTitle>
           <div className="grid gap-7 lg:grid-cols-[1fr_minmax(420px,.65fr)]">
-            <p className="tag">[СМЕТА / МАТЕРИАЛЫ / СРОКИ]</p>
+            <p className="tag">{content.home.tag}</p>
             <div>
               <p className="max-w-2xl text-[clamp(20px,1.35vw,26px)] leading-tight tracking-[-.035em] text-white/82">
-                Делаем внутреннюю отделку коммерческих помещений, считаем смету, поставляем материалы, контролируем сроки и сдаём объект к открытию.
+                {content.home.text}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <CTAButton to="#contact">Рассчитать смету</CTAButton>
+                <CTAButton to="#contact">{content.home.primary}</CTAButton>
                 <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => scrollToId('#projects')}>
-                  Посмотреть проекты
+                  {content.home.secondary}
                 </Button>
               </div>
             </div>
           </div>
-          <p className="font-black text-orange">Алматы, Казахстан</p>
+          <p className="font-black text-orange">{content.home.city}</p>
         </section>
 
         <Section id="services" scene="photo-retail">
-          <p className="tag">[УСЛУГИ]</p>
-          <MaskedTitle className="my-4 text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">Услуги</MaskedTitle>
+          <p className="tag">{content.services.tag}</p>
+          <MaskedTitle className="my-4 text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">{content.services.title}</MaskedTitle>
           <div className="mb-5 grid gap-8 lg:grid-cols-[1fr_minmax(360px,.65fr)]">
             <p className="text-[clamp(20px,1.35vw,26px)] leading-tight text-muted">
-              Строительство магазинов под ключ, ремонт торговых помещений и комплектация объектов материалами.
+              {content.services.text}
             </p>
-            <CTAButton to="#contact">Обсудить проект</CTAButton>
+            <CTAButton to="#contact">{content.services.cta}</CTAButton>
           </div>
           <div className="grid gap-2">
-            {services.map((service) => (
+            {localizedServices.map((service) => (
               <article key={service.index} data-reveal className="grid items-end gap-4 border-b-2 border-line py-3 lg:grid-cols-[120px_1fr_minmax(280px,.5fr)]">
                 <b className="text-4xl tracking-tightest">{service.index}</b>
                 <h2 className="text-[clamp(34px,3.4vw,64px)] font-black leading-none tracking-[-.07em]">{service.title}</h2>
@@ -531,15 +621,15 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         </Section>
 
         <Section id="approach" scene="photo-plans">
-          <p className="tag">[ПОДХОД]</p>
+          <p className="tag">{content.approach.tag}</p>
           <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
-            <MaskedTitle className="text-[clamp(46px,5vw,92px)] font-medium leading-[.92] tracking-[-.075em]">Смета, сроки и качество должны быть управляемыми</MaskedTitle>
+            <MaskedTitle className="text-[clamp(46px,5vw,92px)] font-medium leading-[.92] tracking-[-.075em]">{content.approach.title}</MaskedTitle>
             <p className="self-end text-[clamp(20px,1.35vw,26px)] leading-tight text-muted">
-              Мы фиксируем этапы, считаем материалы, контролируем подрядчиков и помогаем запускать коммерческие пространства без хаоса на объекте.
+              {content.approach.text}
             </p>
           </div>
           <div className="mt-7 grid gap-3 md:grid-cols-3">
-            {approachItems.map((item, index) => (
+            {content.approach.items.map((item, index) => (
               <Card key={item} data-reveal className="card-line grid min-h-28 content-between p-4 shadow-none ring-0">
                 <span className="font-black text-orange">{String(index + 1).padStart(2, '0')}</span>
                 <b className="text-2xl tracking-[-.05em]">{item}</b>
@@ -549,30 +639,30 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         </Section>
 
         <Section id="materials" scene="material-drywall" className="!h-auto !min-h-svh !overflow-visible gap-5">
-          <p className="tag">[МАТЕРИАЛЫ]</p>
-          <MaskedTitle className="max-w-[1120px] text-[clamp(44px,5vw,92px)] font-medium leading-[.9] tracking-[-.075em]">Материалы для коммерческой отделки</MaskedTitle>
+          <p className="tag">{content.materials.tag}</p>
+          <MaskedTitle className="max-w-[1120px] text-[clamp(44px,5vw,92px)] font-medium leading-[.9] tracking-[-.075em]">{content.materials.title}</MaskedTitle>
           <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,.8fr)_minmax(360px,.42fr)]">
             <p className="max-w-3xl text-[clamp(18px,1.1vw,22px)] leading-tight text-muted">
-              Комплектуем объекты материалами для ремонта магазинов, салонов, аптек и торговых помещений в Алматы. Подбираем, поставляем и считаем материалы вместе со сметой работ.
+              {content.materials.text}
             </p>
             <div className="flex flex-wrap gap-3">
-              <CTAButton to="#project-estimate">Добавить материалы в смету</CTAButton>
+              <CTAButton to="#project-estimate">{content.materials.add}</CTAButton>
               <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => openCatalog()}>
-                Запросить прайс
+                {content.materials.price}
               </Button>
             </div>
           </div>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div>
               <div className="mb-3 grid grid-cols-[auto_1fr_auto] items-center gap-4">
-                <h2 className="text-[clamp(22px,1.65vw,32px)] font-black tracking-[-.06em]">Категории материалов</h2>
+                <h2 className="text-[clamp(22px,1.65vw,32px)] font-black tracking-[-.06em]">{content.materials.categoriesTitle}</h2>
                 <span className="h-px bg-line" />
                 <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => openCatalog()}>
-                  Все категории <ArrowRight size={18} />
+                  {content.materials.allCategories} <ArrowRight size={18} />
                 </Button>
               </div>
               <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                {materialCategories.map((category) => (
+                {localizedCategories.map((category) => (
                   <Button
                     variant="ghost"
                     key={category.index}
@@ -604,10 +694,10 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
             <Card className="card-line sticky top-8 grid h-fit content-between gap-5 p-6 shadow-none ring-0">
               <div>
                 <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-3xl font-black leading-none tracking-[-.06em]">Смета проекта</h2>
+                  <h2 className="text-3xl font-black leading-none tracking-[-.06em]">{content.estimate.title}</h2>
                   <b className="grid size-10 place-items-center rounded-md bg-orange text-xl text-white">{estimateCount}</b>
                 </div>
-                <p className="mt-4 text-sm font-bold leading-tight text-muted">Добавьте материалы в смету для расчёта.</p>
+                <p className="mt-4 text-sm font-bold leading-tight text-muted">{content.estimate.note}</p>
               </div>
               <div className="grid gap-4 border-y border-line py-4">
                 {[
@@ -628,11 +718,11 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
               </div>
               <div className="grid gap-3">
                 <Button className="btn-black btn-with-arrow h-auto w-full rounded-lg" type="button" onClick={() => scrollToId('#project-estimate')}>
-                  <span>Открыть смету</span>
+                  <span>{content.estimate.open}</span>
                   <ArrowBox />
                 </Button>
                 <Button variant="ghost" className="btn-line h-auto w-full justify-between rounded-none hover:bg-transparent" type="button" onClick={() => scrollToId('#approach')}>
-                  Как это работает? <ArrowRight size={18} />
+                  {content.estimate.how} <ArrowRight size={18} />
                 </Button>
               </div>
             </Card>
@@ -640,11 +730,11 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         </Section>
 
         <Section id="material-products" scene="photo-city">
-          <p className="tag">[СТРОЙМАТЕРИАЛЫ В АЛМАТЫ]</p>
-          <MaskedTitle className="my-3 text-[clamp(64px,6.8vw,126px)] font-black leading-[.78] tracking-tightest">Каталог</MaskedTitle>
+          <p className="tag">{content.catalog.tag}</p>
+          <MaskedTitle className="my-3 text-[clamp(64px,6.8vw,126px)] font-black leading-[.78] tracking-tightest">{content.catalog.title}</MaskedTitle>
           <div className="mb-4 flex flex-wrap gap-3">
             <Button className="btn-black btn-with-arrow h-auto rounded-lg" type="button" onClick={() => openCatalog()}>
-              <span>Открыть страницу каталога</span>
+              <span>{content.catalog.open}</span>
               <ArrowBox />
             </Button>
           </div>
@@ -675,21 +765,21 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         </Section>
 
         <Section id="project-estimate" scene="material-mixes">
-          <p className="tag">[СМЕТА ПРОЕКТА]</p>
+          <p className="tag">[{content.estimate.title.toUpperCase()}]</p>
           <MaskedTitle className="mb-5 text-[clamp(44px,4.8vw,88px)] font-medium leading-[.92] tracking-[-.075em]">Материалы + работы в одном договоре</MaskedTitle>
           <div className="grid gap-5 lg:grid-cols-[minmax(320px,.78fr)_minmax(0,1fr)]">
             <Card className="card-line p-5 shadow-none ring-0">
-              <h2 className="text-4xl font-black tracking-[-.06em]">Смета проекта</h2>
+              <h2 className="text-4xl font-black tracking-[-.06em]">{content.estimate.title}</h2>
               <p className="my-4 text-muted">Выбранные материалы попадут в заявку на расчёт. Мы уточним количество, поставку стройматериалов Алматы, монтаж и сроки.</p>
               <ul className="grid max-h-56 gap-1 overflow-auto">
                 {estimateItems.length === 0 ? (
-                  <li className="border-t border-ink/20 pt-2 text-muted">Материалы пока не выбраны</li>
+                  <li className="border-t border-ink/20 pt-2 text-muted">{content.estimate.empty}</li>
                 ) : (
                   estimateItems.map((item, index) => <li className="border-t border-ink/20 pt-2 text-muted" key={`${item}-${index}`}>{index + 1}. {item}</li>)
                 )}
               </ul>
             </Card>
-            <form className="grid min-w-0 gap-2 md:grid-cols-2" onSubmit={(event) => submitMessage(event, `Смета проекта отправлена на расчёт. Выбрано позиций: ${estimateCount}.`)}>
+            <form className="grid min-w-0 gap-2 md:grid-cols-2" onSubmit={(event) => submitMessage(event, `${content.estimate.sent} ${estimateCount}.`)}>
               <TextField label="Количество / объём" placeholder="Например: 120 м² перегородок" />
               <TextField label="Площадь объекта" type="number" placeholder="150" />
               <SelectField label="Тип объекта" defaultValue="Магазин" options={['Магазин', 'Аптека', 'Салон', 'Шоурум']} />
@@ -736,9 +826,9 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         </Section>
 
         <Section id="projects" scene="photo-office">
-          <p className="tag">[ПРОЕКТЫ]</p>
+          <p className="tag">[{content.nav[3].toUpperCase()}]</p>
           <div className="mb-6 grid items-end gap-6 lg:grid-cols-[1fr_minmax(340px,.42fr)]">
-            <MaskedTitle className="text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">Проекты</MaskedTitle>
+            <MaskedTitle className="text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">{content.nav[3]}</MaskedTitle>
             <p className="text-[clamp(18px,1.15vw,24px)] leading-tight text-muted">
               Коммерческие помещения, где мы закрывали отделку, материалы, электрику и сроки запуска.
             </p>
@@ -775,9 +865,9 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           <div className="pointer-events-none absolute inset-0 opacity-[.18] [background-image:radial-gradient(circle_at_30%_20%,rgba(255,255,255,.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,.08)_0%,transparent_35%)]" />
           <div className="pointer-events-none absolute inset-0 opacity-[.08] [background-image:linear-gradient(0deg,rgba(255,255,255,.3)_1px,transparent_1px)] [background-size:100%_140px]" />
           <div className="relative z-10">
-            <p className="tag">[CONTACT US]</p>
+            <p className="tag">{content.contact.tag}</p>
             <MaskedTitle className="mt-10 text-[clamp(56px,7vw,132px)] font-medium leading-[.88] tracking-[-.075em] text-white">
-              Get in touch with us
+              {content.contact.title}
             </MaskedTitle>
             <a
               className="mt-5 inline-flex max-w-full items-center gap-3 border-b border-white/55 pb-3 text-[clamp(30px,3.4vw,64px)] font-medium leading-none tracking-[-.055em] text-white transition hover:text-orange"
@@ -809,17 +899,17 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
 
             <div className="grid content-start gap-7 text-[clamp(18px,1.1vw,22px)] leading-tight">
               <div>
-                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">Office</p>
+                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">{content.contact.office}</p>
                 <p className="font-black uppercase">Almaty</p>
-                <p className="mt-2 text-white/78">Алматы, Казахстан</p>
+                <p className="mt-2 text-white/78">{content.contact.city}</p>
                 <p className="mt-3 text-white/78">Tel: +7 708 111 22 33</p>
               </div>
-              <p className="text-white/56">Работаем с магазинами, аптеками, салонами и коммерческими помещениями по Алматы.</p>
+              <p className="text-white/56">{content.contact.text}</p>
             </div>
 
             <div className="grid content-start gap-7 text-[clamp(18px,1.1vw,22px)] leading-tight">
               <div>
-                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">Opening hours</p>
+                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">{content.contact.hours}</p>
                 <p className="text-white/78">9:00 - 18:00</p>
                 <p className="text-white/78">Monday to Friday.</p>
                 <p className="text-white/78">Weekend by appointment.</p>
@@ -846,7 +936,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
 
           <div className="relative z-10 mt-16 grid gap-6 border-t border-white/12 pt-8 text-white/38 md:grid-cols-[minmax(0,.95fr)_1fr]">
             <p className="max-w-3xl text-[clamp(18px,1.2vw,24px)] leading-tight">
-              As a project-focused organisation, ALMABUILD PRO helps commercial spaces open on time, with materials and works under control.
+              {content.contact.footer}
             </p>
             <p className="self-end text-sm leading-tight">
               ALMABUILD PRO · Commercial fit-out and materials supply<br />

@@ -730,14 +730,16 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           </div>
         </Section>
 
-        <Section id="material-products" scene="photo-city">
-          <p className="tag">{content.catalog.tag}</p>
-          <MaskedTitle className="my-3 text-[clamp(64px,6.8vw,126px)] font-black leading-[.78] tracking-tightest">{content.catalog.title}</MaskedTitle>
-          <div className="mb-4 flex flex-wrap gap-3">
-            <Button className="btn-black btn-with-arrow h-auto rounded-lg" type="button" onClick={() => openCatalog()}>
-              <span>{content.catalog.open}</span>
-              <ArrowBox />
-            </Button>
+        <Section id="material-products" scene="photo-city" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-8 pt-28">
+          <div className="grid max-w-[1120px] gap-5">
+            <p className="tag">{content.catalog.tag}</p>
+            <MaskedTitle className="text-[clamp(44px,5.4vw,104px)] font-black leading-[.82] tracking-tightest">{content.catalog.title}</MaskedTitle>
+            <div className="flex flex-wrap gap-3">
+              <Button className="btn-black btn-with-arrow h-auto rounded-lg" type="button" onClick={() => openCatalog()}>
+                <span>{content.catalog.open}</span>
+                <ArrowBox />
+              </Button>
+            </div>
           </div>
           <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-4 pt-1 md:-mx-12 md:px-12 lg:-mr-[230px] lg:pr-[230px] [scrollbar-width:thin]">
             {productCards}

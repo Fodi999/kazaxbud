@@ -1,8 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { ArrowRight, BadgePercent, Calculator, MessageCircle, Send, Truck } from 'lucide-react';
+import { ArrowRight, BadgePercent, Calculator, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -45,7 +44,7 @@ type CatalogCardLabels = {
 
 const navLinks = ['#services', '#approach', '#materials', '#projects', '#contact'] as const;
 
-function useSectionMotion() {
+function useSectionMotion(refreshKey: string) {
   useEffect(() => {
     const motionSections = Array.from(document.querySelectorAll<HTMLElement>('[data-motion-section]'));
     const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
@@ -98,7 +97,7 @@ function useSectionMotion() {
       sectionObserver.disconnect();
       revealObserver.disconnect();
     };
-  }, []);
+  }, [refreshKey]);
 }
 
 function scrollToId(id: string) {
@@ -121,9 +120,11 @@ function getCatalogSlugFromPath() {
 function Header({
   locale,
   onLocaleChange,
+  onLogoClick,
 }: {
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
+  onLogoClick: () => void;
 }) {
   const [time, setTime] = useState('');
   const content = dictionary[locale];
@@ -145,10 +146,14 @@ function Header({
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 grid grid-cols-[1fr_auto_1fr] items-start px-7 pt-7 md:items-center md:px-12">
-      <Link className="pointer-events-auto text-[22px] font-black tracking-[-.04em] text-white mix-blend-difference" href="/#home">
+      <button
+        className="pointer-events-auto w-fit rounded-lg bg-white/78 px-3 py-2 text-[22px] font-black tracking-[-.04em] text-ink shadow-brutal backdrop-blur-md transition hover:bg-white"
+        type="button"
+        onClick={onLogoClick}
+      >
         ALMABUILD PRO
-      </Link>
-      <div className="pointer-events-auto col-span-2 mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 justify-self-end text-xs font-black text-white mix-blend-difference md:col-span-1 md:mt-0 md:justify-self-center">
+      </button>
+      <div className="pointer-events-auto col-span-2 mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 justify-self-end rounded-lg bg-white/78 px-3 py-2 text-xs font-black text-ink shadow-brutal backdrop-blur-md md:col-span-1 md:mt-0 md:justify-self-center">
         <span className="hidden md:inline">{content.timeLabel}: {time}, ALMATY</span>
         <div className="flex items-center gap-2" aria-label="Language">
           {locales.map((item) => (
@@ -157,7 +162,7 @@ function Header({
               type="button"
               className={[
                 'min-h-7 px-1 text-xs font-black transition',
-                locale === item ? 'text-orange' : 'text-white/72 hover:text-white',
+                locale === item ? 'text-orange' : 'text-ink/45 hover:text-ink',
               ].join(' ')}
               onClick={() => onLocaleChange(item)}
             >
@@ -205,6 +210,42 @@ function MaskedTitle({
   );
 }
 
+function BrandIcon({ name }: { name: 'instagram' | 'facebook' | 'whatsapp' | 'telegram' }) {
+  if (name === 'facebook') {
+    return (
+      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M14.25 8.25V6.9c0-.64.43-.79.73-.79h1.87V3.24L14.27 3.2c-2.86 0-3.51 2.14-3.51 3.5v1.55H8.9v3.05h1.86v8.7h3.49v-8.7h2.35l.31-3.05h-2.66Z" />
+      </svg>
+    );
+  }
+
+  if (name === 'whatsapp') {
+    return (
+      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5.3 18.8 6.4 15.5A7.2 7.2 0 1 1 9 18.1Z" />
+        <path d="M9.4 8.8c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2.1.4 0 .6l-.4.5c-.1.2-.2.3-.1.5.3.5.7 1 1.2 1.4.6.5 1.1.8 1.7 1 .2.1.4 0 .5-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.3.6-.1.6-.5 1.3-1 1.6-.5.3-1.4.5-3.1-.2-2.7-1.1-4.5-3.5-4.7-3.8-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-1.9.9-2.1Z" />
+      </svg>
+    );
+  }
+
+  if (name === 'telegram') {
+    return (
+      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m21 4-18 7.4 6.8 2.4L17 8.8l-5.1 6.5 5.7 4.2Z" />
+        <path d="m9.8 13.8 1.1 5.2 2.5-3.2" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="4.5" />
+      <circle cx="12" cy="12" r="3.6" />
+      <path d="M17.4 6.8h.01" />
+    </svg>
+  );
+}
+
 function SideNav({ navItems }: { navItems: NavItem[] }) {
   const [active, setActive] = useState('#services');
 
@@ -225,7 +266,7 @@ function SideNav({ navItems }: { navItems: NavItem[] }) {
   }, [navItems]);
 
   return (
-    <nav className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 overflow-x-auto rounded-xl bg-paper/80 p-1 backdrop-blur md:left-auto md:right-12 md:top-12 md:bottom-auto md:grid md:w-40 md:bg-transparent md:p-0">
+    <nav className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 overflow-x-auto rounded-xl bg-paper/80 p-1 backdrop-blur md:left-auto md:right-12 md:top-12 md:bottom-auto md:grid md:w-48 md:bg-transparent md:p-0">
       {navItems.map((item) => (
         <a
           key={item.href}
@@ -235,12 +276,12 @@ function SideNav({ navItems }: { navItems: NavItem[] }) {
             scrollToId(item.href);
           }}
           className={[
-            'grid min-h-12 min-w-[132px] grid-cols-[1fr_auto] items-center gap-4 rounded-lg px-3 text-sm font-black text-white shadow-brutal transition md:min-h-9 md:min-w-0',
+            'flex h-12 min-w-[132px] items-center justify-between gap-3 rounded-lg px-3 text-sm font-black leading-none text-white shadow-brutal transition md:min-w-0',
             active === item.href ? 'bg-ink' : 'bg-pill hover:bg-ink',
           ].join(' ')}
         >
-          <span>{item.label}</span>
-          <b className="text-xs">{`[${item.index}]`}</b>
+          <span className="min-w-0 truncate">{item.label}</span>
+          <b className="min-w-9 text-right text-xs tabular-nums leading-none">{`[${item.index}]`}</b>
         </a>
       ))}
     </nav>
@@ -368,12 +409,12 @@ function ProductCard({
         className={`absolute inset-0 bg-cover bg-center grayscale transition duration-700 group-hover:scale-105 group-hover:grayscale-0 ${photoClasses[product.photo]}`}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.10)_0%,rgba(0,0,0,.42)_42%,rgba(0,0,0,.88)_100%)]" />
-      <div className={`relative z-10 flex ${featured ? 'h-full min-h-0' : sizeClass} flex-col justify-end gap-2 p-4 ${featured ? 'md:p-5' : ''}`}>
+      <div className={`relative z-10 flex ${featured ? 'h-full min-h-0' : sizeClass} flex-col justify-end gap-2 p-4`}>
         <Badge className="w-fit rounded-md bg-orange px-2 py-1 text-[11px] font-black uppercase text-white hover:bg-orange">
           {product.category}
         </Badge>
-        <h2 className={`${featured ? 'text-[clamp(30px,2.3vw,46px)]' : 'text-[clamp(22px,1.45vw,30px)]'} max-w-[92%] font-black leading-[.9] tracking-[-.065em]`}>{product.title}</h2>
-        <p className={`${featured ? 'text-base' : 'text-sm'} leading-tight text-white/78`}>{product.spec}</p>
+        <h2 className={`${featured ? 'text-[clamp(22px,1.65vw,32px)]' : 'text-[clamp(22px,1.45vw,30px)]'} max-w-[92%] font-black leading-[.9] tracking-[-.065em]`}>{product.title}</h2>
+        <p className="text-sm leading-tight text-white/78">{product.spec}</p>
         <div className="flex items-end justify-between gap-3 border-t border-white/25 pt-2 text-xs font-black">
           <span className="max-w-[120px] text-white/72">{labels.location}</span>
           <strong className="text-right text-sm text-white">{labels.price}</strong>
@@ -468,12 +509,11 @@ function CatalogPage({
 }
 
 export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string | null }) {
-  useSectionMotion();
-
   const [locale, setLocale] = useState<Locale>('ru');
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
   const estimateCount = estimateItems.length;
+  useSectionMotion(catalogSlug ?? 'site');
   const content = dictionary[locale];
   const navItems = useMemo<NavItem[]>(
     () =>
@@ -538,7 +578,17 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
   const backToMaterials = () => {
     window.history.pushState({}, '', '/#materials');
     setCatalogSlug(null);
-    window.setTimeout(() => scrollToId('#materials'), 0);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => scrollToId('#materials'));
+    });
+  };
+
+  const goHome = () => {
+    window.history.pushState({}, '', '/#home');
+    setCatalogSlug(null);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => scrollToId('#home'));
+    });
   };
 
   const productCards = useMemo(
@@ -550,7 +600,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           onAdd={addMaterial}
           labels={content.catalog}
           featured
-          className="w-[min(88vw,680px)] min-w-[min(88vw,680px)] shrink-0 sm:w-[600px] sm:min-w-[600px] lg:w-[680px] lg:min-w-[680px]"
+          className="w-[min(78vw,340px)] min-w-[min(78vw,340px)] shrink-0 sm:w-[320px] sm:min-w-[320px] lg:w-[340px] lg:min-w-[340px]"
         />
       )),
     [content.catalog],
@@ -558,7 +608,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
 
   return (
     <>
-      <Header locale={locale} onLocaleChange={setLocale} />
+      <Header locale={locale} onLocaleChange={setLocale} onLogoClick={goHome} />
       <ScrollProgress />
       <SideNav navItems={navItems} />
       <Button
@@ -601,20 +651,22 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           <p className="font-black text-orange">{content.home.city}</p>
         </section>
 
-        <Section id="services" scene="photo-retail">
-          <p className="tag">{content.services.tag}</p>
-          <MaskedTitle className="my-4 text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">{content.services.title}</MaskedTitle>
-          <div className="mb-5 grid gap-8 lg:grid-cols-[1fr_minmax(360px,.65fr)]">
+        <Section id="services" scene="photo-retail" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-7 pt-28">
+          <div className="grid max-w-[1120px] gap-5">
+            <p className="tag">{content.services.tag}</p>
+            <h1 className="text-[clamp(72px,8.5vw,148px)] font-black leading-none tracking-tightest">{content.services.title}</h1>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,.8fr)_auto] lg:items-end">
             <p className="text-[clamp(20px,1.35vw,26px)] leading-tight text-muted">
               {content.services.text}
             </p>
             <CTAButton to="#contact">{content.services.cta}</CTAButton>
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-0">
             {localizedServices.map((service) => (
-              <article key={service.index} data-reveal className="grid items-end gap-4 border-b-2 border-line py-3 lg:grid-cols-[120px_1fr_minmax(280px,.5fr)]">
-                <b className="text-4xl tracking-tightest">{service.index}</b>
-                <h2 className="text-[clamp(34px,3.4vw,64px)] font-black leading-none tracking-[-.07em]">{service.title}</h2>
+              <article key={service.index} data-reveal className="grid items-end gap-4 border-b-2 border-line py-3 lg:grid-cols-[100px_minmax(0,1fr)_minmax(280px,.45fr)]">
+                <b className="text-[clamp(28px,2.2vw,42px)] tracking-tightest">{service.index}</b>
+                <h2 className="text-[clamp(32px,3vw,58px)] font-black leading-[.92] tracking-[-.07em]">{service.title}</h2>
                 <p className="text-muted">{service.text}</p>
               </article>
             ))}
@@ -746,13 +798,15 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           </div>
         </Section>
 
-        <Section id="material-kits" scene="material-ceiling">
-          <p className="tag">[КОМПЛЕКТЫ]</p>
-          <MaskedTitle className="mb-5 text-[clamp(44px,4.8vw,88px)] font-medium leading-[.92] tracking-[-.075em]">Комплекты под объект</MaskedTitle>
-          <div className="grid gap-3 md:grid-cols-3">
+        <Section id="material-kits" scene="material-ceiling" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-8 pt-28">
+          <div className="grid max-w-[1120px] gap-5">
+            <p className="tag">[КОМПЛЕКТЫ]</p>
+            <MaskedTitle className="text-[clamp(42px,5vw,92px)] font-medium leading-[.9] tracking-[-.075em]">Комплекты под объект</MaskedTitle>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {kits.map((kit) => (
-              <Card key={kit.title} data-reveal className="card-line grid min-h-48 grid-rows-[auto_auto_1fr_auto] p-4 shadow-none ring-0">
-                <h2 className="text-3xl font-black leading-none tracking-[-.06em]">{kit.title}</h2>
+              <Card key={kit.title} data-reveal className="card-line grid min-h-[260px] grid-rows-[auto_auto_1fr_auto] p-5 shadow-none ring-0">
+                <h2 className="text-[clamp(26px,2.1vw,38px)] font-black leading-[.92] tracking-[-.06em]">{kit.title}</h2>
                 <p className="my-3 text-muted">{kit.text}</p>
                 <ul className="grid gap-1">
                   {kit.items.map((item) => (
@@ -919,18 +973,18 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
               </div>
               <div className="flex flex-wrap gap-3">
                 {[
-                  ['Instagram', <span key="instagram" className="text-sm font-black">IG</span>],
-                  ['Facebook', <span key="facebook" className="text-sm font-black">FB</span>],
-                  ['WhatsApp', <MessageCircle key="whatsapp" size={22} />],
-                  ['Telegram', <Send key="telegram" size={22} />],
+                  ['Instagram', 'instagram'],
+                  ['Facebook', 'facebook'],
+                  ['WhatsApp', 'whatsapp'],
+                  ['Telegram', 'telegram'],
                 ].map(([label, icon]) => (
                   <a
                     key={label as string}
                     aria-label={label as string}
-                    className="grid size-11 place-items-center rounded-md border border-white/35 text-white transition hover:border-orange hover:bg-orange hover:text-white"
+                    className="grid size-14 place-items-center rounded-lg border border-white/35 text-white transition hover:border-orange hover:bg-orange hover:text-white"
                     href="#contact"
                   >
-                    {icon}
+                    <BrandIcon name={icon as 'instagram' | 'facebook' | 'whatsapp' | 'telegram'} />
                   </a>
                 ))}
               </div>

@@ -252,7 +252,7 @@
   .title-mask {
     display: block;
     overflow: hidden;
-    padding-bottom: .04em;
+    padding-block: .08em .14em;
   }
 
   .title-mask > span {

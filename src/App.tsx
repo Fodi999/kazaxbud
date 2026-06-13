@@ -148,16 +148,16 @@ function Header({
       <Link className="pointer-events-auto text-[22px] font-black tracking-[-.04em] text-white mix-blend-difference" href="/#home">
         ALMABUILD PRO
       </Link>
-      <div className="hidden text-center text-sm font-black text-white mix-blend-difference md:block">{content.timeLabel}: {time}, ALMATY</div>
-      <div className="pointer-events-auto justify-self-end rounded-lg bg-ink/75 p-1 text-white shadow-brutal backdrop-blur">
-        <div className="grid grid-cols-3 gap-1" aria-label="Language">
+      <div className="pointer-events-auto col-span-2 mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 justify-self-end text-xs font-black text-white mix-blend-difference md:col-span-1 md:mt-0 md:justify-self-center">
+        <span className="hidden md:inline">{content.timeLabel}: {time}, ALMATY</span>
+        <div className="flex items-center gap-2" aria-label="Language">
           {locales.map((item) => (
             <button
               key={item}
               type="button"
               className={[
-                'min-h-9 min-w-10 rounded-md px-2 text-xs font-black transition',
-                locale === item ? 'bg-orange text-white' : 'text-white/72 hover:bg-white/12 hover:text-white',
+                'min-h-7 px-1 text-xs font-black transition',
+                locale === item ? 'text-orange' : 'text-white/72 hover:text-white',
               ].join(' ')}
               onClick={() => onLocaleChange(item)}
             >
@@ -166,6 +166,7 @@ function Header({
           ))}
         </div>
       </div>
+      <div />
     </header>
   );
 }

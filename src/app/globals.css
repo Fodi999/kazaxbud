@@ -1,26 +1,415 @@
+@import "@fontsource-variable/montserrat";
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-paper: #e9e5db;
+  --color-porcelain: #f8f8f5;
+  --color-ink: #050505;
+  --color-line: rgba(5, 5, 5, .72);
+  --color-orange: #ff7a3d;
+  --color-pill: #7f7b75;
+  --font-sans: "Montserrat Variable", "Montserrat", Arial, sans-serif;
+  --tracking-tightest: -0.085em;
+  --shadow-brutal: 0 14px 34px rgba(5, 5, 5, .16);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: rgba(5, 5, 5, .62);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.625rem;
+    --scroll-progress: 0%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
+    font-family: "Montserrat Variable", "Montserrat", Arial, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    background: #e9e5db;
+    color: #050505;
+    font-family: "Montserrat Variable", "Montserrat", Arial, sans-serif;
+    text-rendering: geometricPrecision;
+  }
+
+  ::selection {
+    background: #ff7a3d;
+    color: #fff;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in oklch, var(--ring), transparent 50%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .scroll-progress {
+    position: fixed;
+    left: 24px;
+    top: 112px;
+    z-index: 50;
+    height: calc(100svh - 224px);
+    width: 2px;
+    overflow: hidden;
+    background: color-mix(in srgb, currentColor 18%, transparent);
+    color: #050505;
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+
+  .scroll-progress span {
+    display: block;
+    width: 100%;
+    height: var(--scroll-progress);
+    min-height: 24px;
+    background: #fff;
+    transform-origin: top;
+    transition: height 180ms ease-out;
+  }
+
+  .screen {
+    min-height: 100svh;
+    height: 100svh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    overflow: hidden;
+  }
+
+  .field {
+    @apply grid gap-1.5 min-w-0 text-muted font-bold;
+  }
+
+  .control {
+    @apply block w-full min-w-0 max-w-full rounded-lg border-2 border-line bg-transparent px-4 text-ink outline-none transition;
+    min-height: 48px;
+  }
+
+  .control:focus {
+    @apply border-orange bg-white/30;
+  }
+
+  .btn-black {
+    @apply inline-flex min-h-12 w-fit items-center justify-center gap-4 rounded-lg bg-ink px-5 font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-orange;
+  }
+
+  .btn-with-arrow {
+    @apply justify-between gap-5 pl-5 pr-2;
+  }
+
+  .btn-arrow-box {
+    @apply grid size-9 shrink-0 place-items-center rounded-md bg-white text-ink transition;
+  }
+
+  .btn-line {
+    @apply inline-flex min-h-12 w-fit items-center justify-center border-y-2 border-line bg-transparent px-0 font-extrabold text-ink transition hover:text-orange;
+  }
+
+  .tag {
+    @apply m-0 text-[18px] font-black text-orange;
+  }
+
+  .card-line {
+    @apply rounded-lg border-2 border-line bg-porcelain/60;
+  }
+
+  .motion-section {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .motion-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0;
+    transform: scaleY(.96);
+    transform-origin: bottom;
+    background:
+      linear-gradient(90deg, rgba(255, 122, 61, .1), transparent 32%),
+      linear-gradient(180deg, rgba(255, 255, 255, .22), transparent 34%);
+    transition:
+      opacity 700ms ease,
+      transform 900ms cubic-bezier(.16, 1, .3, 1);
+    pointer-events: none;
+  }
+
+  .motion-section.is-active-section::before {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .scene-section {
+    overflow: hidden;
+  }
+
+  .scene-section > :not(.scene-photo):not(.scene-overlay) {
+    position: relative;
+    z-index: 3;
+  }
+
+  .scene-photo,
+  .scene-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .scene-photo {
+    z-index: 0;
+    background-position: center;
+    background-size: cover;
+    opacity: .12;
+    filter: grayscale(1) contrast(1.05);
+    transform: scale(1.08) translateY(18px);
+    transition:
+      opacity 1100ms cubic-bezier(.16, 1, .3, 1),
+      filter 1100ms cubic-bezier(.16, 1, .3, 1),
+      transform 1400ms cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .scene-photo-dark {
+    opacity: .62;
+    filter: grayscale(1) contrast(1.12) brightness(.78);
+  }
+
+  .scene-overlay {
+    z-index: 1;
+    background:
+      linear-gradient(90deg, rgba(248, 248, 245, .96) 0%, rgba(248, 248, 245, .78) 42%, rgba(248, 248, 245, .9) 100%),
+      linear-gradient(180deg, rgba(255, 122, 61, .08), transparent 46%);
+  }
+
+  .scene-overlay-dark {
+    background:
+      linear-gradient(180deg, rgba(5, 5, 5, .36), rgba(5, 5, 5, .84)),
+      linear-gradient(90deg, rgba(5, 5, 5, .28), rgba(5, 5, 5, .04) 48%, rgba(5, 5, 5, .54));
+  }
+
+  .motion-section.is-active-section .scene-photo {
+    opacity: .2;
+    filter: grayscale(.75) contrast(1.08);
+    transform: scale(1.02) translateY(0);
+  }
+
+  .motion-section.is-active-section .scene-photo-dark {
+    opacity: .72;
+    filter: grayscale(.85) contrast(1.16) brightness(.82);
+  }
+
+  .title-mask {
+    display: block;
+    overflow: hidden;
+    padding-bottom: .04em;
+  }
+
+  .title-mask > span {
+    display: block;
+    transform: translateY(112%) skewY(3deg);
+    transform-origin: left bottom;
+    transition: transform 980ms cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .motion-section.has-entered .title-mask > span {
+    transform: translateY(0) skewY(0);
+  }
+
+  .motion-section > .tag,
+  .motion-section > h1,
+  .motion-section > div,
+  .motion-section > p,
+  .motion-section > a {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(34px);
+    transition:
+      opacity 760ms cubic-bezier(.16, 1, .3, 1),
+      filter 760ms cubic-bezier(.16, 1, .3, 1),
+      transform 760ms cubic-bezier(.16, 1, .3, 1);
+  }
+
+  .motion-section.has-entered > .tag {
+    transition-delay: 60ms;
+  }
+
+  .motion-section.has-entered > h1 {
+    transition-delay: 130ms;
+  }
+
+  .motion-section.has-entered > h1.title-mask > span {
+    transition-delay: 210ms;
+  }
+
+  .motion-section.has-entered > div,
+  .motion-section.has-entered > p,
+  .motion-section.has-entered > a {
+    transition-delay: 210ms;
+  }
+
+  .motion-section.has-entered > .tag,
+  .motion-section.has-entered > h1,
+  .motion-section.has-entered > div,
+  .motion-section.has-entered > p,
+  .motion-section.has-entered > a {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+
+  [data-reveal] {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(28px) scale(.985);
+    transition:
+      opacity 680ms cubic-bezier(.16, 1, .3, 1),
+      filter 680ms cubic-bezier(.16, 1, .3, 1),
+      transform 680ms cubic-bezier(.16, 1, .3, 1);
+  }
+
+  [data-reveal].is-revealed {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  .scene-section [data-reveal] {
+    background-color: color-mix(in srgb, var(--color-porcelain) 78%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  [data-reveal]:nth-child(2) {
+    transition-delay: 70ms;
+  }
+
+  [data-reveal]:nth-child(3) {
+    transition-delay: 140ms;
+  }
+
+  [data-reveal]:nth-child(4) {
+    transition-delay: 210ms;
+  }
+
+  [data-reveal]:nth-child(5) {
+    transition-delay: 280ms;
+  }
+
+  [data-reveal]:nth-child(6) {
+    transition-delay: 350ms;
+  }
+}
+
+@media (max-width: 1100px) {
+  html {
+    scroll-snap-type: none;
+  }
+
+  .screen {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+    scroll-snap-align: none;
+  }
+
+  .scene-section {
+    overflow: hidden;
+  }
+
+  .scroll-progress {
+    left: 0;
+    top: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(5, 5, 5, .12);
+    mix-blend-mode: normal;
+  }
+
+  .scroll-progress span {
+    height: 100%;
+    min-height: 0;
+    width: var(--scroll-progress);
+    transition: width 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .scroll-progress span,
+  .motion-section::before,
+  .scene-photo,
+  .motion-section > .tag,
+  .motion-section > h1,
+  .motion-section > div,
+  .motion-section > p,
+  .motion-section > a,
+  [data-reveal],
+  .title-mask > span {
+    transition: none;
+  }
+
+  .motion-section > .tag,
+  .motion-section > h1,
+  .motion-section > div,
+  .motion-section > p,
+  .motion-section > a,
+  [data-reveal],
+  .title-mask > span {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
 }

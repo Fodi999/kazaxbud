@@ -1,113 +1,31 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BadgePercent, Calculator, Truck } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  kits,
-  materialCategories,
-  photoClasses,
-  products,
-  projects,
-} from './data/site';
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Menu, Phone, Search, ShoppingBag, Sun, X } from 'lucide-react';
+import { kits, materialCategories, products, projects } from './data/site';
 import { dictionary, localeNames, locales, type Locale } from './data/i18n';
 
-type NavItem = {
-  label: string;
-  href: string;
-  index: string;
-};
-
+type Product = (typeof products)[number];
 type CategoryCopy = {
   title: string;
   text: string;
   bullets: string[];
 };
 
-type CatalogCardLabels = {
-  location: string;
-  price: string;
-  add: string;
+const navAnchors = ['#services', '#materials', '#projects', '#estimate', '#contact'] as const;
+const navLabels: Record<Locale, string[]> = {
+  ru: ['Услуги', 'Материалы', 'Проекты', 'Смета', 'Контакты'],
+  kk: ['Қызметтер', 'Материалдар', 'Жобалар', 'Смета', 'Байланыс'],
+  en: ['Services', 'Materials', 'Projects', 'Estimate', 'Contact'],
 };
 
-const navLinks = ['#services', '#approach', '#materials', '#projects', '#contact'] as const;
-
-function useSectionMotion(refreshKey: string) {
-  useEffect(() => {
-    const motionSections = Array.from(document.querySelectorAll<HTMLElement>('[data-motion-section]'));
-    const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
-    let lastScrollY = window.scrollY;
-    let frame = 0;
-
-    const updateScrollState = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0;
-      document.documentElement.style.setProperty('--scroll-progress', `${progress * 100}%`);
-      document.documentElement.dataset.scrollDirection = window.scrollY >= lastScrollY ? 'down' : 'up';
-      lastScrollY = window.scrollY;
-      frame = 0;
-    };
-
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(updateScrollState);
-    };
-
-    const sectionObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle('is-active-section', entry.isIntersecting);
-          if (entry.isIntersecting) entry.target.classList.add('has-entered');
-        });
-      },
-      { rootMargin: '-18% 0px -28%', threshold: 0.18 },
-    );
-
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add('is-revealed');
-          revealObserver.unobserve(entry.target);
-        });
-      },
-      { rootMargin: '0px 0px -12%', threshold: 0.1 },
-    );
-
-    motionSections.forEach((section) => sectionObserver.observe(section));
-    revealItems.forEach((item) => revealObserver.observe(item));
-    updateScrollState();
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', onScroll);
-      sectionObserver.disconnect();
-      revealObserver.disconnect();
-    };
-  }, [refreshKey]);
-}
-
 function scrollToId(id: string) {
-  if (typeof window === 'undefined') return;
   const target = document.querySelector(id);
-  if (target) {
-    target.scrollIntoView({ behavior: 'smooth' });
+  if (!target) {
+    window.location.href = `/${id}`;
     return;
   }
-  window.location.href = `/${id}`;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function getCatalogSlugFromPath() {
@@ -117,434 +35,409 @@ function getCatalogSlugFromPath() {
   return slug ? decodeURIComponent(slug) : 'all';
 }
 
+function MonoLogo() {
+  return (
+    <button className="brand-mark" type="button" onClick={() => scrollToId('#home')} aria-label="ALMABUILD PRO">
+      <span>ALMA</span>
+      <b>BUILD</b>
+    </button>
+  );
+}
+
 function Header({
   locale,
+  theme,
   onLocaleChange,
-  onLogoClick,
+  onCatalog,
+  onEstimate,
+  onThemeToggle,
 }: {
   locale: Locale;
+  theme: 'dark' | 'light';
   onLocaleChange: (locale: Locale) => void;
-  onLogoClick: () => void;
+  onCatalog: () => void;
+  onEstimate: () => void;
+  onThemeToggle: () => void;
 }) {
-  const [time, setTime] = useState('');
-  const content = dictionary[locale];
-
-  useEffect(() => {
-    const update = () => {
-      setTime(
-        new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : locale === 'kk' ? 'kk-KZ' : 'ru-RU', {
-          timeZone: 'Asia/Almaty',
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date()),
-      );
-    };
-    update();
-    const timer = window.setInterval(update, 30000);
-    return () => window.clearInterval(timer);
-  }, [locale]);
+  const [open, setOpen] = useState(false);
+  const items = navAnchors.map((href, index) => ({
+    href,
+    label: navLabels[locale][index],
+  }));
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 grid grid-cols-[1fr_auto_1fr] items-start px-7 pt-7 md:items-center md:px-12">
-      <button
-        className="pointer-events-auto w-fit rounded-lg bg-white/78 px-3 py-2 text-[22px] font-black tracking-[-.04em] text-ink shadow-brutal backdrop-blur-md transition hover:bg-white"
-        type="button"
-        onClick={onLogoClick}
-      >
-        ALMABUILD PRO
-      </button>
-      <div className="pointer-events-auto col-span-2 mt-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 justify-self-end rounded-lg bg-white/78 px-3 py-2 text-xs font-black text-ink shadow-brutal backdrop-blur-md md:col-span-1 md:mt-0 md:justify-self-center">
-        <span className="hidden md:inline">{content.timeLabel}: {time}, ALMATY</span>
-        <div className="flex items-center gap-2" aria-label="Language">
+    <header className="site-header">
+      <MonoLogo />
+      <nav className="desktop-nav" aria-label="Главная навигация">
+        {items.map((item) => (
+          <a key={item.href} href={item.href} onClick={(event) => { event.preventDefault(); scrollToId(item.href); }}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+      <div className="header-actions">
+        <button className="header-link" type="button" onClick={onCatalog}>Каталог</button>
+        <button className="theme-toggle" type="button" onClick={onThemeToggle} aria-label="Переключить тему" title="Переключить тему">
+          <Sun size={18} />
+        </button>
+        <div className="locale-switch" aria-label="Язык">
           {locales.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={[
-                'min-h-7 px-1 text-xs font-black transition',
-                locale === item ? 'text-orange' : 'text-ink/45 hover:text-ink',
-              ].join(' ')}
-              onClick={() => onLocaleChange(item)}
-            >
+            <button key={item} className={locale === item ? 'active' : ''} type="button" onClick={() => onLocaleChange(item)}>
               {localeNames[item]}
             </button>
           ))}
         </div>
+        <button className="icon-btn" type="button" aria-label="Открыть каталог" title="Открыть каталог" onClick={onCatalog}><Search size={20} /></button>
+        <button className="icon-btn mobile-menu-btn" type="button" aria-label="Меню" onClick={() => setOpen((value) => !value)}>
+          {open ? <X size={21} /> : <Menu size={21} />}
+        </button>
       </div>
-      <div />
+      {open ? (
+        <div className="mobile-nav">
+          {items.map((item) => (
+            <a key={item.href} href={item.href} onClick={(event) => { event.preventDefault(); setOpen(false); scrollToId(item.href); }}>
+              {item.label}
+            </a>
+          ))}
+          <button type="button" onClick={() => { setOpen(false); onCatalog(); }}>Открыть каталог</button>
+          <a className="mobile-phone-link" href="tel:+77081112233">+7 708 111 22 33</a>
+          <button className="mobile-estimate-link" type="button" onClick={() => { setOpen(false); onEstimate(); }}>Рассчитать смету</button>
+          <div className="mobile-nav-tools">
+            <button type="button" onClick={onThemeToggle}>Тема: {theme === 'dark' ? 'молочная' : 'темная'}</button>
+            <div>
+              {locales.map((item) => (
+                <button key={item} className={locale === item ? 'active' : ''} type="button" onClick={() => onLocaleChange(item)}>
+                  {localeNames[item]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }
 
-function ScrollProgress() {
+function Marquee() {
   return (
-    <div className="scroll-progress" aria-hidden="true">
-      <span />
+    <div className="ticker" aria-hidden="true">
+      <div>
+        <span>отделка магазинов под ключ</span>
+        <span>+7 708 111 22 33</span>
+        <span>стройматериалы Алматы</span>
+        <span>смета и поставка</span>
+        <span>коммерческие помещения</span>
+      </div>
     </div>
   );
 }
 
-function SceneLayer({ photo, dark = false }: { photo: keyof typeof photoClasses; dark?: boolean }) {
+function ProductArt({ product, tall = false }: { product: Product; tall?: boolean }) {
   return (
-    <>
-      <div
-        className={`scene-photo ${dark ? 'scene-photo-dark' : ''} ${photoClasses[photo]}`}
-        aria-hidden="true"
-      />
-      <div className={`scene-overlay ${dark ? 'scene-overlay-dark' : ''}`} aria-hidden="true" />
-    </>
+    <div className={`product-art ${tall ? 'product-art-tall' : ''}`}>
+      <div className="art-board">
+        <span>{product.category}</span>
+        <b>{product.title}</b>
+        <small>{product.spec}</small>
+      </div>
+      <div className="art-card art-card-one" />
+      <div className="art-card art-card-two" />
+    </div>
   );
 }
 
-function MaskedTitle({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <h1 className={`title-mask ${className}`}>
-      <span>{children}</span>
-    </h1>
-  );
-}
-
-function BrandIcon({ name }: { name: 'instagram' | 'facebook' | 'whatsapp' | 'telegram' }) {
-  if (name === 'facebook') {
-    return (
-      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M14.25 8.25V6.9c0-.64.43-.79.73-.79h1.87V3.24L14.27 3.2c-2.86 0-3.51 2.14-3.51 3.5v1.55H8.9v3.05h1.86v8.7h3.49v-8.7h2.35l.31-3.05h-2.66Z" />
-      </svg>
-    );
-  }
-
-  if (name === 'whatsapp') {
-    return (
-      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5.3 18.8 6.4 15.5A7.2 7.2 0 1 1 9 18.1Z" />
-        <path d="M9.4 8.8c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .5.4l.7 1.6c.1.2.1.4 0 .6l-.4.5c-.1.2-.2.3-.1.5.3.5.7 1 1.2 1.4.6.5 1.1.8 1.7 1 .2.1.4 0 .5-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.3.6-.1.6-.5 1.3-1 1.6-.5.3-1.4.5-3.1-.2-2.7-1.1-4.5-3.5-4.7-3.8-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-1.9.9-2.1Z" />
-      </svg>
-    );
-  }
-
-  if (name === 'telegram') {
-    return (
-      <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m21 4-18 7.4 6.8 2.4L17 8.8l-5.1 6.5 5.7 4.2Z" />
-        <path d="m9.8 13.8 1.1 5.2 2.5-3.2" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="4" width="16" height="16" rx="4.5" />
-      <circle cx="12" cy="12" r="3.6" />
-      <path d="M17.4 6.8h.01" />
-    </svg>
-  );
-}
-
-function SideNav({ navItems }: { navItems: NavItem[] }) {
-  const [active, setActive] = useState('#services');
-
-  useEffect(() => {
-    const sections = navItems
-      .map((item) => document.querySelector(item.href))
-      .filter((section): section is Element => section !== null);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActive(`#${entry.target.id}`);
-        });
-      },
-      { threshold: 0.45 },
-    );
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [navItems]);
-
-  return (
-    <nav className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 overflow-x-auto rounded-xl bg-paper/80 p-1 backdrop-blur md:left-auto md:right-12 md:top-12 md:bottom-auto md:grid md:w-48 md:bg-transparent md:p-0">
-      {navItems.map((item) => (
-        <a
-          key={item.href}
-          href={`/${item.href}`}
-          onClick={(event) => {
-            event.preventDefault();
-            scrollToId(item.href);
-          }}
-          className={[
-            'flex h-12 min-w-[132px] items-center justify-between gap-3 rounded-lg px-3 text-sm font-black leading-none text-white shadow-brutal transition md:min-w-0',
-            active === item.href ? 'bg-ink' : 'bg-pill hover:bg-ink',
-          ].join(' ')}
-        >
-          <span className="min-w-0 truncate">{item.label}</span>
-          <b className="min-w-9 text-right text-xs tabular-nums leading-none">{`[${item.index}]`}</b>
-        </a>
-      ))}
-    </nav>
-  );
-}
-
-function Section({
-  id,
-  className = '',
-  scene,
-  children,
-}: {
-  id: string;
-  className?: string;
-  scene?: keyof typeof photoClasses;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      id={id}
-      data-motion-section
-      className={`motion-section screen flex flex-col justify-center bg-porcelain px-6 py-24 md:px-12 lg:pr-[230px] ${scene ? 'scene-section' : ''} ${className}`}
-    >
-      {scene ? <SceneLayer photo={scene} /> : null}
-      {children}
-    </section>
-  );
-}
-
-function CTAButton({ children, to }: { children: React.ReactNode; to: string }) {
-  return (
-    <Button className="btn-black btn-with-arrow h-auto rounded-lg" type="button" onClick={() => scrollToId(to)}>
-      <span>{children}</span>
-      <ArrowBox />
-    </Button>
-  );
-}
-
-function ArrowBox() {
-  return (
-    <span className="btn-arrow-box">
-      <ArrowRight size={18} />
-    </span>
-  );
-}
-
-function TextField({
-  label,
-  type = 'text',
-  placeholder,
-  required,
-}: {
-  label: string;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
-}) {
-  return (
-    <Label className="field block">
-      <span>{label}</span>
-      <Input className="control h-12 rounded-lg border-2 border-line bg-transparent text-ink shadow-none" type={type} placeholder={placeholder} required={required} />
-    </Label>
-  );
-}
-
-function TextAreaField({ label, placeholder }: { label: string; placeholder: string }) {
-  return (
-    <Label className="field block md:col-span-2">
-      <span>{label}</span>
-      <Textarea className="control min-h-24 rounded-lg border-2 border-line bg-transparent py-3 text-ink shadow-none" placeholder={placeholder} />
-    </Label>
-  );
-}
-
-function SelectField({
-  label,
-  options,
-  defaultValue,
-}: {
-  label: string;
-  options: string[];
-  defaultValue: string;
-}) {
-  return (
-    <Label className="field block">
-      <span>{label}</span>
-      <Select defaultValue={defaultValue}>
-        <SelectTrigger className="control h-12 w-full rounded-lg border-2 border-line bg-transparent text-ink shadow-none">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Label>
-  );
-}
-
-type Product = (typeof products)[number];
-
-function ProductCard({
+function ProductTile({
   product,
   onAdd,
-  labels,
-  featured = false,
-  className = '',
+  large = false,
 }: {
   product: Product;
   onAdd: (name: string) => void;
-  labels: CatalogCardLabels;
-  featured?: boolean;
-  className?: string;
+  large?: boolean;
 }) {
-  const sizeClass = featured ? 'aspect-[9/16] min-h-0' : 'min-h-[230px]';
-
   return (
-    <Card
-      className={`group relative isolate ${sizeClass} overflow-hidden rounded-lg border-2 border-line bg-ink p-0 text-white shadow-none ring-0 ${className}`}
-    >
-      <div
-        className={`absolute inset-0 bg-cover bg-center grayscale transition duration-700 group-hover:scale-105 group-hover:grayscale-0 ${photoClasses[product.photo]}`}
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.10)_0%,rgba(0,0,0,.42)_42%,rgba(0,0,0,.88)_100%)]" />
-      <div className={`relative z-10 flex ${featured ? 'h-full min-h-0' : sizeClass} flex-col justify-end gap-2 p-4`}>
-        <Badge className="w-fit rounded-md bg-orange px-2 py-1 text-[11px] font-black uppercase text-white hover:bg-orange">
-          {product.category}
-        </Badge>
-        <h2 className={`${featured ? 'text-[clamp(22px,1.65vw,32px)]' : 'text-[clamp(22px,1.45vw,30px)]'} max-w-[92%] font-black leading-[.9] tracking-[-.065em]`}>{product.title}</h2>
-        <p className="text-sm leading-tight text-white/78">{product.spec}</p>
-        <div className="flex items-end justify-between gap-3 border-t border-white/25 pt-2 text-xs font-black">
-          <span className="max-w-[120px] text-white/72">{labels.location}</span>
-          <strong className="text-right text-sm text-white">{labels.price}</strong>
-        </div>
-        <Button
-          className="mt-1 min-h-10 rounded-md bg-white px-3 text-sm font-black text-ink transition hover:bg-orange hover:text-white"
-          onClick={() => onAdd(product.title)}
-        >
-          {labels.add}
-        </Button>
+    <article className={`product-tile ${large ? 'product-tile-large' : ''}`}>
+      <ProductArt product={product} tall={large} />
+      <div className="product-copy">
+        <p>{product.category}</p>
+        <h3>{product.title}</h3>
+        <span>{product.spec}</span>
+        <button type="button" onClick={() => onAdd(product.title)}>Добавить в смету</button>
       </div>
-    </Card>
+    </article>
   );
 }
 
-function CatalogPage({
-  activeSlug,
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 560px)');
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return isMobile;
+}
+
+function InteractiveMaterialsWindow({
+  items,
+  onAdd,
+}: {
+  items: Product[];
+  onAdd: (name: string) => void;
+}) {
+  const isMobile = useIsMobile();
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const activeProduct = activeIndex === null ? null : items[activeIndex];
+
+  if (isMobile) {
+    return (
+      <div className="materials-carousel" aria-label="Материалы">
+        {items.map((product) => (
+          <article className="materials-carousel-card" key={product.title}>
+            <ProductArt product={product} />
+            <div>
+              <span>{product.category}</span>
+              <h3>{product.title}</h3>
+              <p>{product.spec}</p>
+              <button type="button" onClick={() => onAdd(product.title)}>Добавить в смету</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+  }
+
+  function moveCursor(event: MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    event.currentTarget.style.setProperty('--cursor-x', x.toFixed(3));
+    event.currentTarget.style.setProperty('--cursor-y', y.toFixed(3));
+  }
+
+  function shiftActive(step: number) {
+    if (activeIndex === null) return;
+    setActiveIndex((activeIndex + step + items.length) % items.length);
+  }
+
+  return (
+    <div className="materials-window" onMouseMove={moveCursor} onMouseLeave={(event) => {
+      event.currentTarget.style.setProperty('--cursor-x', '0');
+      event.currentTarget.style.setProperty('--cursor-y', '0');
+    }}>
+      {activeProduct ? (
+        <article className="material-detail">
+          <button className="material-close" type="button" onClick={() => setActiveIndex(null)} aria-label="Назад к материалам">
+            <X size={19} />
+          </button>
+          <button className="material-arrow left" type="button" onClick={() => shiftActive(-1)} aria-label="Предыдущая карточка">
+            <ArrowLeft size={24} />
+          </button>
+          <button className="material-arrow right" type="button" onClick={() => shiftActive(1)} aria-label="Следующая карточка">
+            <ArrowRight size={24} />
+          </button>
+          <div className="material-detail-main">
+            <div>
+              <span>{activeProduct.category}</span>
+              <h3>{activeProduct.title}</h3>
+              <p>{activeProduct.spec}</p>
+              <p>
+                Материал для коммерческой отделки, перегородок, потолков и подготовки объекта к открытию. Подбираем объем, доставку и монтаж под проект.
+              </p>
+            </div>
+            <ProductArt product={activeProduct} />
+          </div>
+          <div className="material-detail-grid">
+            <div>
+              <b>Характеристики</b>
+              <p>Категория: {activeProduct.category}</p>
+              <p>Формат: поставка / монтаж</p>
+              <p>Подходит для торговых помещений</p>
+            </div>
+            <div>
+              <b>Применение</b>
+              <p>Магазины, аптеки, салоны, шоурумы и технические зоны.</p>
+            </div>
+            <div>
+              <b>Наличие</b>
+              <p>Алматы</p>
+              <p>Под заказ / по складу</p>
+            </div>
+          </div>
+          <div className="material-detail-actions">
+            <button className="text-button" type="button" onClick={() => setActiveIndex(null)}>← назад к материалам</button>
+            <button type="button" onClick={() => onAdd(activeProduct.title)}>Добавить в смету <span>+</span></button>
+          </div>
+        </article>
+      ) : (
+        <div className="material-cards-stage">
+          {items.slice(0, 3).map((product, index) => (
+            <button
+              key={product.title}
+              className={`floating-material-card card-${index + 1}`}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+            >
+              <span>{product.category}</span>
+              <h3>{product.title}</h3>
+              <p>{product.spec}</p>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileBottomBar({
+  estimateCount,
+  onEstimate,
+}: {
+  estimateCount: number;
+  onEstimate: () => void;
+}) {
+  return (
+    <div className="mobile-bottom-bar">
+      <a href="tel:+77081112233"><Phone size={18} />Позвонить</a>
+      <button type="button" onClick={onEstimate}>Смета <span>{estimateCount}</span></button>
+    </div>
+  );
+}
+
+function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
+  return (
+    <div className="section-title">
+      <p>{eyebrow}</p>
+      <h2>{title}</h2>
+      {text ? <span>{text}</span> : null}
+    </div>
+  );
+}
+
+function CatalogView({
+  slug,
   locale,
   onOpenCatalog,
   onBack,
-  onAddMaterial,
+  onAdd,
 }: {
-  activeSlug: string;
+  slug: string;
   locale: Locale;
   onOpenCatalog: (slug?: string) => void;
   onBack: () => void;
-  onAddMaterial: (name: string) => void;
+  onAdd: (name: string) => void;
 }) {
   const content = dictionary[locale];
-  const categoryCopy = content.categories as Record<string, CategoryCopy>;
+  const categories = content.categories as Record<string, CategoryCopy>;
   const localizedCategories = materialCategories.map((category) => ({
     ...category,
-    ...categoryCopy[category.slug],
+    ...categories[category.slug],
   }));
-  const activeCategory = localizedCategories.find((category) => category.slug === activeSlug);
-  const visibleProducts = activeSlug === 'all'
-    ? products
-    : products.filter((product) => product.categorySlug === activeSlug);
+  const activeCategory = localizedCategories.find((category) => category.slug === slug);
+  const visibleProducts = slug === 'all' ? products : products.filter((product) => product.categorySlug === slug);
 
   return (
-    <main>
-      <section className="min-h-svh bg-porcelain px-6 pb-28 pt-24 md:px-12 lg:pr-[230px]">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="tag">{content.catalog.tag}</p>
-          <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={onBack}>
-            {content.catalog.back}
-          </Button>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(360px,.45fr)]">
-          <h1 className="text-[clamp(56px,8.5vw,160px)] font-black leading-[.78] tracking-tightest">
-            {activeCategory ? activeCategory.title : content.catalog.title}
-          </h1>
-          <div className="self-end">
-            <p className="text-[clamp(18px,1.25vw,24px)] leading-tight text-muted">
-              {content.catalog.text}
-            </p>
-            <Button className="btn-black btn-with-arrow mt-5 h-auto rounded-lg" type="button" onClick={() => scrollToId('#project-estimate')}>
-              <span>{content.catalog.toEstimate}</span>
-              <ArrowBox />
-            </Button>
-          </div>
-        </div>
-
-        <div className="my-7 flex gap-2 overflow-x-auto pb-2">
-          <Button
-            className={`min-h-11 shrink-0 rounded-lg px-4 font-black ${activeSlug === 'all' ? 'bg-ink text-white' : 'bg-pill text-white hover:bg-ink'}`}
-            type="button"
-            onClick={() => onOpenCatalog()}
-          >
-            {content.catalog.all}
-          </Button>
-          {localizedCategories.map((category) => (
-            <Button
-              key={category.slug}
-              className={`min-h-11 shrink-0 rounded-lg px-4 font-black ${activeSlug === category.slug ? 'bg-ink text-white' : 'bg-pill text-white hover:bg-ink'}`}
-              type="button"
-              onClick={() => onOpenCatalog(category.slug)}
-            >
-              {category.title}
-            </Button>
-          ))}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.title} product={product} onAdd={onAddMaterial} labels={content.catalog} />
-          ))}
-        </div>
+    <main className="catalog-page">
+      <section className="catalog-hero">
+        <button className="text-button" type="button" onClick={onBack}>Назад на сайт</button>
+        <p>{content.catalog.tag}</p>
+        <h1>{activeCategory?.title || content.catalog.title}</h1>
+        <span>{content.catalog.text}</span>
+      </section>
+      <div className="category-strip">
+        <button className={slug === 'all' ? 'active' : ''} type="button" onClick={() => onOpenCatalog()}>Все</button>
+        {localizedCategories.map((category) => (
+          <button key={category.slug} className={slug === category.slug ? 'active' : ''} type="button" onClick={() => onOpenCatalog(category.slug)}>
+            {category.title}
+          </button>
+        ))}
+      </div>
+      <section className="catalog-grid">
+        {visibleProducts.map((product) => <ProductTile key={product.title} product={product} onAdd={onAdd} />)}
       </section>
     </main>
   );
 }
 
+function ContactForm({ estimateCount }: { estimateCount: number }) {
+  const [message, setMessage] = useState('');
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(`Заявка сохранена. Выбрано позиций: ${estimateCount}.`);
+    event.currentTarget.reset();
+  }
+
+  return (
+    <form className="estimate-form" onSubmit={submit}>
+      <label>
+        <span>Имя</span>
+        <input name="name" placeholder="Дмитрий" />
+      </label>
+      <label>
+        <span>Телефон</span>
+        <input name="phone" required placeholder="+7 (___) ___-__-__" />
+      </label>
+      <label>
+        <span>Тип объекта</span>
+        <select defaultValue="Магазин" name="type">
+          <option>Магазин</option>
+          <option>Аптека</option>
+          <option>Салон</option>
+          <option>Шоурум</option>
+        </select>
+      </label>
+      <label>
+        <span>Площадь</span>
+        <input name="area" type="number" placeholder="120 м2" />
+      </label>
+      <label className="wide">
+        <span>Что нужно сделать</span>
+        <textarea name="comment" placeholder="Отделка, материалы, электрика, сроки открытия" />
+      </label>
+      <button type="submit">Отправить заявку <ArrowRight size={18} /></button>
+      <p>{message}</p>
+    </form>
+  );
+}
+
 export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string | null }) {
-  const [locale, setLocale] = useState<Locale>('ru');
+  const [locale, setLocale] = useState<Locale>(() => {
+    if (typeof window === 'undefined') return 'ru';
+    const savedLocale = window.localStorage.getItem('almabuild-locale');
+    return savedLocale && locales.includes(savedLocale as Locale) ? savedLocale as Locale : 'ru';
+  });
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const savedTheme = window.localStorage.getItem('almabuild-theme');
+    return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+  });
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
-  const estimateCount = estimateItems.length;
-  useSectionMotion(catalogSlug ?? 'site');
+  const [toast, setToast] = useState('');
   const content = dictionary[locale];
-  const navItems = useMemo<NavItem[]>(
-    () =>
-      navLinks.map((href, index) => ({
-        href,
-        index: String(index + 1).padStart(2, '0'),
-        label: content.nav[index],
-      })),
-    [content.nav],
-  );
-  const localizedServices = content.services.items.map(([title, text], index) => ({
-    index: `[0:${index + 1}]`,
-    title,
-    text,
-  }));
-  const localizedCategories = materialCategories.map((category) => ({
-    ...category,
-    ...(content.categories as Record<string, CategoryCopy>)[category.slug],
-  }));
 
-  const addMaterial = (name: string) => {
-    setEstimateItems((items) => [...items, name]);
-  };
+  const localizedCategories = useMemo(() => {
+    const categories = content.categories as Record<string, CategoryCopy>;
+    return materialCategories.map((category) => ({
+      ...category,
+      ...categories[category.slug],
+    }));
+  }, [content.categories]);
 
-  const submitMessage = (event: FormEvent<HTMLFormElement>, text: string) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const output = form.querySelector<HTMLParagraphElement>('[data-form-message]');
-    if (output) output.textContent = text;
-    form.reset();
-  };
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    window.localStorage.setItem('almabuild-locale', locale);
+  }, [locale]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('almabuild-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const syncRoute = () => setCatalogSlug(getCatalogSlugFromPath());
@@ -553,455 +446,190 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
   }, []);
 
   useEffect(() => {
-    const savedLocale = window.localStorage.getItem('almabuild-locale');
-    if (!savedLocale || !locales.includes(savedLocale as Locale)) return;
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
-    const frame = window.requestAnimationFrame(() => {
-      setLocale(savedLocale as Locale);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = locale;
-    window.localStorage.setItem('almabuild-locale', locale);
-  }, [locale]);
-
-  const openCatalog = (slug = 'all') => {
+  function openCatalog(slug = 'all') {
     const path = slug === 'all' ? '/catalog' : `/catalog/${slug}`;
     window.history.pushState({}, '', path);
     setCatalogSlug(slug);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }
 
-  const backToMaterials = () => {
+  function backToSite() {
     window.history.pushState({}, '', '/#materials');
     setCatalogSlug(null);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => scrollToId('#materials'));
-    });
-  };
+    window.requestAnimationFrame(() => scrollToId('#materials'));
+  }
 
-  const goHome = () => {
-    window.history.pushState({}, '', '/#home');
+  function goToEstimate() {
+    window.history.pushState({}, '', '/#estimate');
     setCatalogSlug(null);
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => scrollToId('#home'));
+      window.requestAnimationFrame(() => scrollToId('#estimate'));
     });
-  };
+  }
 
-  const productCards = useMemo(
-    () =>
-      products.slice(0, 6).map((product) => (
-        <ProductCard
-          key={product.title}
-          product={product}
-          onAdd={addMaterial}
-          labels={content.catalog}
-          featured
-          className="w-[min(78vw,340px)] min-w-[min(78vw,340px)] shrink-0 sm:w-[320px] sm:min-w-[320px] lg:w-[340px] lg:min-w-[340px]"
-        />
-      )),
-    [content.catalog],
-  );
+  function addMaterial(name: string) {
+    setEstimateItems((items) => [...items, name]);
+    setToast(`Добавлено в смету: ${name}`);
+  }
 
   return (
     <>
-      <Header locale={locale} onLocaleChange={setLocale} onLogoClick={goHome} />
-      <ScrollProgress />
-      <SideNav navItems={navItems} />
-      <Button
-        className="fixed bottom-[82px] right-5 z-50 inline-flex min-h-12 items-center gap-3 rounded-lg bg-ink px-4 font-black text-white shadow-brutal md:bottom-8 md:right-12"
-        type="button"
-        onClick={() => scrollToId('#project-estimate')}
-      >
-        {content.estimateButton} <b className="grid size-8 place-items-center rounded-md bg-orange">{estimateCount}</b>
-      </Button>
-
+      <Header
+        locale={locale}
+        theme={theme}
+        onLocaleChange={setLocale}
+        onCatalog={() => openCatalog()}
+        onEstimate={goToEstimate}
+        onThemeToggle={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+      />
+      {toast ? <div className="site-toast" role="status">{toast}</div> : null}
+      <MobileBottomBar estimateCount={estimateItems.length} onEstimate={goToEstimate} />
       {catalogSlug !== null ? (
-        <CatalogPage
-          activeSlug={catalogSlug}
+        <CatalogView
+          slug={catalogSlug}
           locale={locale}
           onOpenCatalog={openCatalog}
-          onBack={backToMaterials}
-          onAddMaterial={addMaterial}
+          onBack={backToSite}
+          onAdd={addMaterial}
         />
       ) : (
-      <main>
-        <section id="home" data-motion-section className="motion-section scene-section screen grid content-center gap-6 bg-ink px-6 py-24 text-white md:px-12 lg:pr-[230px]">
-          <SceneLayer photo="photo-building" dark />
-          <MaskedTitle className="max-w-[1180px] text-[clamp(56px,5.85vw,116px)] font-black leading-[.88] tracking-tightest">
-            {content.home.title}
-          </MaskedTitle>
-          <div className="grid gap-7 lg:grid-cols-[1fr_minmax(420px,.65fr)]">
-            <p className="tag">{content.home.tag}</p>
-            <div>
-              <p className="max-w-2xl text-[clamp(20px,1.35vw,26px)] leading-tight tracking-[-.035em] text-white/82">
-                {content.home.text}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <CTAButton to="#contact">{content.home.primary}</CTAButton>
-                <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => scrollToId('#projects')}>
-                  {content.home.secondary}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <p className="font-black text-orange">{content.home.city}</p>
-        </section>
-
-        <Section id="services" scene="photo-retail" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-7 pt-28">
-          <div className="grid max-w-[1120px] gap-5">
-            <p className="tag">{content.services.tag}</p>
-            <h1 className="text-[clamp(72px,8.5vw,148px)] font-black leading-none tracking-tightest">{content.services.title}</h1>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,.8fr)_auto] lg:items-end">
-            <p className="text-[clamp(20px,1.35vw,26px)] leading-tight text-muted">
-              {content.services.text}
-            </p>
-            <CTAButton to="#contact">{content.services.cta}</CTAButton>
-          </div>
-          <div className="grid gap-0">
-            {localizedServices.map((service) => (
-              <article key={service.index} data-reveal className="grid items-end gap-4 border-b-2 border-line py-3 lg:grid-cols-[100px_minmax(0,1fr)_minmax(280px,.45fr)]">
-                <b className="text-[clamp(28px,2.2vw,42px)] tracking-tightest">{service.index}</b>
-                <h2 className="text-[clamp(32px,3vw,58px)] font-black leading-[.92] tracking-[-.07em]">{service.title}</h2>
-                <p className="text-muted">{service.text}</p>
-              </article>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="approach" scene="photo-plans">
-          <p className="tag">{content.approach.tag}</p>
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
-            <MaskedTitle className="text-[clamp(46px,5vw,92px)] font-medium leading-[.92] tracking-[-.075em]">{content.approach.title}</MaskedTitle>
-            <p className="self-end text-[clamp(20px,1.35vw,26px)] leading-tight text-muted">
-              {content.approach.text}
-            </p>
-          </div>
-          <div className="mt-7 grid gap-3 md:grid-cols-3">
-            {content.approach.items.map((item, index) => (
-              <Card key={item} data-reveal className="card-line grid min-h-28 content-between p-4 shadow-none ring-0">
-                <span className="font-black text-orange">{String(index + 1).padStart(2, '0')}</span>
-                <b className="text-2xl tracking-[-.05em]">{item}</b>
-              </Card>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="materials" scene="material-drywall" className="!h-auto !min-h-svh !overflow-visible gap-5">
-          <p className="tag">{content.materials.tag}</p>
-          <MaskedTitle className="max-w-[1120px] text-[clamp(44px,5vw,92px)] font-medium leading-[.9] tracking-[-.075em]">{content.materials.title}</MaskedTitle>
-          <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,.8fr)_minmax(360px,.42fr)]">
-            <p className="max-w-3xl text-[clamp(18px,1.1vw,22px)] leading-tight text-muted">
-              {content.materials.text}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <CTAButton to="#project-estimate">{content.materials.add}</CTAButton>
-              <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => openCatalog()}>
-                {content.materials.price}
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div>
-              <div className="mb-3 grid grid-cols-[auto_1fr_auto] items-center gap-4">
-                <h2 className="text-[clamp(22px,1.65vw,32px)] font-black tracking-[-.06em]">{content.materials.categoriesTitle}</h2>
-                <span className="h-px bg-line" />
-                <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => openCatalog()}>
-                  {content.materials.allCategories} <ArrowRight size={18} />
-                </Button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                {localizedCategories.map((category) => (
-                  <Button
-                    variant="ghost"
-                    key={category.index}
-                    data-reveal
-                    className="group relative isolate grid h-[260px] w-full overflow-hidden rounded-xl border border-ink/70 bg-ink p-0 text-left text-white shadow-none transition-all duration-300 hover:-translate-y-1 hover:border-orange hover:bg-ink"
-                    type="button"
-                    onClick={() => openCatalog(category.slug)}
-                  >
-                    <div className={`pointer-events-none absolute inset-0 bg-cover bg-center opacity-80 grayscale transition duration-700 group-hover:scale-105 group-hover:opacity-100 group-hover:grayscale-0 ${photoClasses[category.photo]}`} />
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.18)_0%,rgba(0,0,0,.46)_45%,rgba(0,0,0,.88)_100%)]" />
-                    <div className="relative z-10 flex h-full min-w-0 flex-col overflow-hidden p-5 pr-16">
-                      <div className="min-w-0">
-                        <b className="text-[20px] font-black leading-none text-orange">{category.index}</b>
-                        <h3 className="mt-4 max-w-[360px] whitespace-normal break-words text-[clamp(24px,1.65vw,34px)] font-black leading-[.9] tracking-[-.06em] text-white [overflow-wrap:anywhere]">{category.title}</h3>
-                      </div>
-                      <ul className="mt-auto grid min-w-0 gap-0.5 overflow-hidden pt-4 text-[13px] font-semibold leading-tight text-white/78">
-                        {category.bullets.map((item) => (
-                          <li key={item} className="line-clamp-1 break-words [overflow-wrap:anywhere]">• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <span className="absolute bottom-5 right-5 z-20 grid size-11 place-items-center rounded-full bg-white text-ink transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-orange group-hover:text-white">
-                      <ArrowRight size={18} />
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <Card className="card-line sticky top-8 grid h-fit content-between gap-5 p-6 shadow-none ring-0">
-              <div>
-                <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-3xl font-black leading-none tracking-[-.06em]">{content.estimate.title}</h2>
-                  <b className="grid size-10 place-items-center rounded-md bg-orange text-xl text-white">{estimateCount}</b>
+        <main>
+          <section className="hero-section" id="home">
+            <Marquee />
+            <div className="hero-grid">
+              <div className="hero-copy">
+                <p>{content.home.tag}</p>
+                <h1>{content.home.title}</h1>
+                <span>{content.home.text}</span>
+                <div className="hero-actions">
+                  <button type="button" onClick={() => scrollToId('#estimate')}>{content.home.primary} <ArrowRight size={20} /></button>
+                  <button type="button" onClick={() => scrollToId('#projects')}>{content.home.secondary}</button>
                 </div>
-                <p className="mt-4 text-sm font-bold leading-tight text-muted">{content.estimate.note}</p>
               </div>
-              <div className="grid gap-4 border-y border-line py-4">
-                {[
-                  [Calculator, 'Быстрый расчёт', 'Считаем материалы и сроки поставки'],
-                  [BadgePercent, 'Лучшие цены', 'Работаем напрямую с поставщиками'],
-                  [Truck, 'Доставка по Алматы', 'Привозим материалы на объект'],
-                ].map(([Icon, title, text]) => (
-                  <div key={title as string} className="grid grid-cols-[32px_1fr] gap-3">
-                    <span className="grid size-8 place-items-center rounded-md border border-line">
-                      <Icon size={18} />
-                    </span>
-                    <p className="text-sm leading-tight">
-                      <b className="block">{title as string}</b>
-                      <span className="text-muted">{text as string}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="grid gap-3">
-                <Button className="btn-black btn-with-arrow h-auto w-full rounded-lg" type="button" onClick={() => scrollToId('#project-estimate')}>
-                  <span>{content.estimate.open}</span>
-                  <ArrowBox />
-                </Button>
-                <Button variant="ghost" className="btn-line h-auto w-full justify-between rounded-none hover:bg-transparent" type="button" onClick={() => scrollToId('#approach')}>
-                  {content.estimate.how} <ArrowRight size={18} />
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </Section>
-
-        <Section id="material-products" scene="photo-city" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-8 pt-28">
-          <div className="grid max-w-[1120px] gap-5">
-            <p className="tag">{content.catalog.tag}</p>
-            <MaskedTitle className="text-[clamp(44px,5.4vw,104px)] font-black leading-[.82] tracking-tightest">{content.catalog.title}</MaskedTitle>
-            <div className="flex flex-wrap gap-3">
-              <Button className="btn-black btn-with-arrow h-auto rounded-lg" type="button" onClick={() => openCatalog()}>
-                <span>{content.catalog.open}</span>
-                <ArrowBox />
-              </Button>
-            </div>
-          </div>
-          <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-4 pt-1 md:-mx-12 md:px-12 lg:-mr-[230px] lg:pr-[230px] [scrollbar-width:thin]">
-            {productCards}
-          </div>
-        </Section>
-
-        <Section id="material-kits" scene="material-ceiling" className="!h-auto !min-h-svh !justify-start !overflow-visible gap-8 pt-28">
-          <div className="grid max-w-[1120px] gap-5">
-            <p className="tag">[КОМПЛЕКТЫ]</p>
-            <MaskedTitle className="text-[clamp(42px,5vw,92px)] font-medium leading-[.9] tracking-[-.075em]">Комплекты под объект</MaskedTitle>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {kits.map((kit) => (
-              <Card key={kit.title} data-reveal className="card-line grid min-h-[260px] grid-rows-[auto_auto_1fr_auto] p-5 shadow-none ring-0">
-                <h2 className="text-[clamp(26px,2.1vw,38px)] font-black leading-[.92] tracking-[-.06em]">{kit.title}</h2>
-                <p className="my-3 text-muted">{kit.text}</p>
-                <ul className="grid gap-1">
-                  {kit.items.map((item) => (
-                    <li key={item} className="border-t border-ink/20 pt-1 text-sm text-muted">{item}</li>
-                  ))}
-                </ul>
-                <Button className="mt-3 min-h-10 rounded-md bg-ink px-3 font-black text-white hover:bg-orange" onClick={() => addMaterial(kit.title)}>
-                  Рассчитать комплект
-                </Button>
-              </Card>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="project-estimate" scene="material-mixes">
-          <p className="tag">[{content.estimate.title.toUpperCase()}]</p>
-          <MaskedTitle className="mb-5 text-[clamp(44px,4.8vw,88px)] font-medium leading-[.92] tracking-[-.075em]">Материалы + работы в одном договоре</MaskedTitle>
-          <div className="grid gap-5 lg:grid-cols-[minmax(320px,.78fr)_minmax(0,1fr)]">
-            <Card className="card-line p-5 shadow-none ring-0">
-              <h2 className="text-4xl font-black tracking-[-.06em]">{content.estimate.title}</h2>
-              <p className="my-4 text-muted">Выбранные материалы попадут в заявку на расчёт. Мы уточним количество, поставку стройматериалов Алматы, монтаж и сроки.</p>
-              <ul className="grid max-h-56 gap-1 overflow-auto">
-                {estimateItems.length === 0 ? (
-                  <li className="border-t border-ink/20 pt-2 text-muted">{content.estimate.empty}</li>
-                ) : (
-                  estimateItems.map((item, index) => <li className="border-t border-ink/20 pt-2 text-muted" key={`${item}-${index}`}>{index + 1}. {item}</li>)
-                )}
-              </ul>
-            </Card>
-            <form className="grid min-w-0 gap-2 md:grid-cols-2" onSubmit={(event) => submitMessage(event, `${content.estimate.sent} ${estimateCount}.`)}>
-              <TextField label="Количество / объём" placeholder="Например: 120 м² перегородок" />
-              <TextField label="Площадь объекта" type="number" placeholder="150" />
-              <SelectField label="Тип объекта" defaultValue="Магазин" options={['Магазин', 'Аптека', 'Салон', 'Шоурум']} />
-              <TextField label="Район Алматы" placeholder="Медеуский" />
-              <SelectField label="Срок начала работ" defaultValue="В течение 7 дней" options={['В течение 7 дней', 'В течение месяца', 'Планируем']} />
-              <TextField label="Телефон" type="tel" required placeholder="+7 (___) ___-__-__" />
-              <TextAreaField label="Комментарий" placeholder="Материалы для ремонта магазина, сроки, особенности объекта" />
-              <Button className="btn-black btn-with-arrow h-auto rounded-lg md:col-span-2" type="submit">
-                <span>Отправить на расчёт</span>
-                <ArrowBox />
-              </Button>
-              <p className="min-h-6 font-black text-orange md:col-span-2" data-form-message />
-            </form>
-          </div>
-        </Section>
-
-        <Section id="material-calc" scene="material-electric">
-          <p className="tag">[РАСЧЁТ МАТЕРИАЛОВ]</p>
-          <MaskedTitle className="mb-5 text-[clamp(44px,4.8vw,88px)] font-medium leading-[.92] tracking-[-.075em]">Рассчитать материалы по площади</MaskedTitle>
-          <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
-            <Card className="card-line p-5 shadow-none ring-0">
-              <form className="grid min-w-0 gap-3 md:grid-cols-2" onSubmit={(event) => submitMessage(event, 'Заявка на расчёт материалов принята.')}>
-                <SelectField label="Тип работ" defaultValue="Перегородки" options={['Перегородки', 'Потолки', 'Плиточные работы', 'Электрика и освещение']} />
-                <TextField label="Площадь, м²" type="number" placeholder="100" />
-                <TextField label="Высота потолка" type="number" placeholder="3.2" />
-                <SelectField label="Нужен монтаж" defaultValue="Да" options={['Да', 'Нет']} />
-                <TextField label="Телефон" type="tel" required placeholder="+7 (___) ___-__-__" />
-                <Button className="btn-black btn-with-arrow h-auto rounded-lg md:col-span-2" type="submit">
-                  <span>Получить расчёт материалов</span>
-                  <ArrowBox />
-                </Button>
-                <p className="min-h-6 font-black text-orange md:col-span-2" data-form-message />
-              </form>
-            </Card>
-            <Card className="card-line grid content-center gap-5 p-5 shadow-none ring-0">
-              <h2 className="text-4xl font-black tracking-[-.06em]">Материалы + работы в одном договоре</h2>
-              <p className="text-[clamp(20px,1.35vw,28px)] leading-tight text-muted">
-                Мы можем не только поставить материалы, но и выполнить отделку, электрику, потолки, полы и перегородки под ключ. Это помогает контролировать сроки, качество и бюджет объекта.
-              </p>
-              <p className="text-muted">Стройматериалы в Алматы, гипсокартон Алматы, сухие смеси Алматы, освещение для магазинов, ремонт торговых помещений Алматы и отделка магазинов под ключ.</p>
-              <Button variant="ghost" className="btn-line h-auto rounded-none hover:bg-transparent" type="button" onClick={() => scrollToId('#contact')}>Обсудить объект</Button>
-            </Card>
-          </div>
-        </Section>
-
-        <Section id="projects" scene="photo-office">
-          <p className="tag">[{content.nav[3].toUpperCase()}]</p>
-          <div className="mb-6 grid items-end gap-6 lg:grid-cols-[1fr_minmax(340px,.42fr)]">
-            <MaskedTitle className="text-[clamp(82px,12vw,210px)] font-black leading-[.78] tracking-tightest">{content.nav[3]}</MaskedTitle>
-            <p className="text-[clamp(18px,1.15vw,24px)] leading-tight text-muted">
-              Коммерческие помещения, где мы закрывали отделку, материалы, электрику и сроки запуска.
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {projects.map((project, index) => (
-              <Card
-                key={project.title}
-                data-reveal
-                className="group relative isolate min-h-[360px] overflow-hidden rounded-lg border-2 border-line bg-ink p-0 text-white shadow-none ring-0"
-              >
-                <div className={`absolute inset-0 bg-cover bg-center grayscale transition duration-700 group-hover:scale-105 group-hover:grayscale-0 ${photoClasses[project.photo]}`} />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.08)_0%,rgba(0,0,0,.35)_42%,rgba(0,0,0,.88)_100%)]" />
-                <div className="relative z-10 flex min-h-[360px] flex-col justify-between p-5">
-                  <div className="flex items-center justify-between border-b border-white/25 pb-3 text-sm font-black">
-                    <span>{String(index + 1).padStart(2, '0')}</span>
-                    <span className="text-orange">ALMATY</span>
-                  </div>
-                  <div>
-                    <h2 className="text-[clamp(36px,3vw,64px)] font-black leading-[.86] tracking-[-.075em]">{project.title}</h2>
-                    <p className="mt-2 text-base font-bold text-white/76">{project.meta}</p>
-                    <p className="mt-4 border-t border-white/25 pt-3 text-sm font-black leading-tight">
-                      Отделка · электрика · потолки · материалы
-                    </p>
-                  </div>
+              <div className="hero-panel">
+                <ProductArt product={products[2]} tall />
+                <div>
+                  <b>ALMATY</b>
+                  <span>materials / fit-out / launch</span>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </Section>
+              </div>
+            </div>
+            <div className="mega-word" aria-hidden="true">ALMABUILD</div>
+          </section>
 
-        <section id="contact" data-motion-section className="motion-section relative isolate flex min-h-svh flex-col justify-between overflow-visible bg-[#191918] px-6 pb-36 pt-24 text-white [scroll-snap-align:start] md:px-12 lg:pr-[230px]">
-          <SceneLayer photo="photo-city" dark />
-          <div className="pointer-events-none absolute inset-0 opacity-[.18] [background-image:radial-gradient(circle_at_30%_20%,rgba(255,255,255,.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,.08)_0%,transparent_35%)]" />
-          <div className="pointer-events-none absolute inset-0 opacity-[.08] [background-image:linear-gradient(0deg,rgba(255,255,255,.3)_1px,transparent_1px)] [background-size:100%_140px]" />
-          <div className="relative z-10">
-            <p className="tag">{content.contact.tag}</p>
-            <MaskedTitle className="mt-10 text-[clamp(56px,7vw,132px)] font-medium leading-[.88] tracking-[-.075em] text-white">
-              {content.contact.title}
-            </MaskedTitle>
-            <a
-              className="mt-5 inline-flex max-w-full items-center gap-3 border-b border-white/55 pb-3 text-[clamp(30px,3.4vw,64px)] font-medium leading-none tracking-[-.055em] text-white transition hover:text-orange"
-              href="mailto:info@almabuild.pro"
-            >
-              <ArrowRight className="rotate-45" size={42} />
-              <span className="break-all">info@almabuild.pro</span>
-            </a>
-          </div>
-
-          <div className="relative z-10 mt-14 grid gap-10 lg:grid-cols-[minmax(0,.95fr)_minmax(280px,.42fr)_minmax(240px,.32fr)]">
-            <nav className="grid">
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={`/${item.href}`}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    scrollToId(item.href);
-                  }}
-                  className="grid grid-cols-[52px_1fr_auto] items-center border-b border-white/30 py-4 text-white transition hover:border-orange hover:text-orange"
-                >
-                  <span className="text-sm font-black text-white/80">[{item.index}]</span>
-                  <span className="text-[clamp(34px,3.1vw,58px)] font-medium leading-none tracking-[-.055em]">{item.label}</span>
-                  <ArrowRight size={26} />
-                </a>
+          <section className="split-section" id="services">
+            <SectionTitle eyebrow={content.services.tag} title={content.services.title} text={content.services.text} />
+            <div className="service-list">
+              {content.services.items.map(([title, text], index) => (
+                <article key={title}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
               ))}
-            </nav>
-
-            <div className="grid content-start gap-7 text-[clamp(18px,1.1vw,22px)] leading-tight">
-              <div>
-                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">{content.contact.office}</p>
-                <p className="font-black uppercase">Almaty</p>
-                <p className="mt-2 text-white/78">{content.contact.city}</p>
-                <p className="mt-3 text-white/78">Tel: +7 708 111 22 33</p>
-              </div>
-              <p className="text-white/56">{content.contact.text}</p>
             </div>
+          </section>
 
-            <div className="grid content-start gap-7 text-[clamp(18px,1.1vw,22px)] leading-tight">
-              <div>
-                <p className="mb-5 text-sm font-black uppercase tracking-wide text-white/38">{content.contact.hours}</p>
-                <p className="text-white/78">9:00 - 18:00</p>
-                <p className="text-white/78">Monday to Friday.</p>
-                <p className="text-white/78">Weekend by appointment.</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {[
-                  ['Instagram', 'instagram'],
-                  ['Facebook', 'facebook'],
-                  ['WhatsApp', 'whatsapp'],
-                  ['Telegram', 'telegram'],
-                ].map(([label, icon]) => (
-                  <a
-                    key={label as string}
-                    aria-label={label as string}
-                    className="grid size-14 place-items-center rounded-lg border border-white/35 text-white transition hover:border-orange hover:bg-orange hover:text-white"
-                    href="#contact"
-                  >
-                    <BrandIcon name={icon as 'instagram' | 'facebook' | 'whatsapp' | 'telegram'} />
-                  </a>
-                ))}
+          <section className="shop-section" id="materials">
+            <SectionTitle eyebrow={content.materials.tag} title={content.materials.title} text={content.materials.text} />
+            <div className="category-grid">
+              {localizedCategories.map((category) => (
+                <button key={category.slug} type="button" onClick={() => openCatalog(category.slug)}>
+                  <span>{category.index}</span>
+                  <h3>{category.title}</h3>
+                  <p>{category.text}</p>
+                  <b><ArrowRight size={18} /></b>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="products-section">
+            <div className="section-row">
+              <h2>Сопутствующие товары</h2>
+              <button className="text-button" type="button" onClick={() => openCatalog()}>Все товары</button>
+            </div>
+            <InteractiveMaterialsWindow items={products.slice(2, 7)} onAdd={addMaterial} />
+            <div className="product-grid">
+              {products.slice(0, 8).map((product, index) => (
+                <ProductTile key={product.title} product={product} onAdd={addMaterial} large={index === 1 || index === 4} />
+              ))}
+            </div>
+          </section>
+
+          <section className="project-section" id="projects">
+            <SectionTitle eyebrow="[ПРОЕКТЫ]" title="Коммерческие пространства" text="Магазины, аптеки и салоны, где материалы, сроки и работы собраны в управляемый процесс." />
+            <div className="project-grid">
+              {projects.map((project, index) => (
+                <article key={project.title}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <h3>{project.title}</h3>
+                  <p>{project.meta}</p>
+                  <b>fit-out / supply / control</b>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="kits-section">
+            <SectionTitle eyebrow="[КОМПЛЕКТЫ]" title="Готовые наборы под объект" />
+            <div className="kit-grid">
+              {kits.map((kit) => (
+                <article key={kit.title}>
+                  <BriefcaseBusiness size={22} />
+                  <h3>{kit.title}</h3>
+                  <p>{kit.text}</p>
+                  <ul>{kit.items.map((item) => <li key={item}>{item}</li>)}</ul>
+                  <button type="button" onClick={() => addMaterial(kit.title)}>В смету</button>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="estimate-section" id="estimate">
+            <div className="estimate-summary">
+              <SectionTitle eyebrow="[СМЕТА]" title="Собираем материалы и работы в один расчет" text="Добавляйте позиции из каталога, оставляйте площадь объекта и получайте расчет под запуск коммерческого пространства." />
+              <div className="estimate-box">
+                <b>{estimateItems.length}</b>
+                <span>позиций в смете</span>
+                {estimateItems.length ? (
+                  <ul>{estimateItems.slice(-6).map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
+                ) : <p>Материалы пока не выбраны</p>}
               </div>
             </div>
-          </div>
+            <ContactForm estimateCount={estimateItems.length} />
+          </section>
 
-          <div className="relative z-10 mt-16 grid gap-6 border-t border-white/12 pt-8 text-white/38 md:grid-cols-[minmax(0,.95fr)_1fr]">
-            <p className="max-w-3xl text-[clamp(18px,1.2vw,24px)] leading-tight">
-              {content.contact.footer}
-            </p>
-            <p className="self-end text-sm leading-tight">
-              ALMABUILD PRO · Commercial fit-out and materials supply<br />
-              © 2026 All Rights Reserved.
-            </p>
-          </div>
-        </section>
-      </main>
+          <footer className="site-footer" id="contact">
+            <div>
+              <MonoLogo />
+              <p>{content.contact.footer}</p>
+            </div>
+            <div className="footer-columns">
+              <nav>
+                <b>Магазин</b>
+                <button type="button" onClick={() => openCatalog()}>Каталог</button>
+                <button type="button" onClick={() => scrollToId('#materials')}>Материалы</button>
+                <button type="button" onClick={() => scrollToId('#estimate')}>Смета</button>
+              </nav>
+              <nav>
+                <b>Связаться</b>
+                <a href="mailto:info@almabuild.pro">info@almabuild.pro</a>
+                <a href="tel:+77081112233">+7 708 111 22 33</a>
+                <span>Алматы, Казахстан</span>
+              </nav>
+            </div>
+            <div className="footer-bottom">
+              <span>© 2026, ALMABUILD PRO</span>
+              <span><ShoppingBag size={16} /> commercial fit-out</span>
+            </div>
+          </footer>
+        </main>
       )}
     </>
   );

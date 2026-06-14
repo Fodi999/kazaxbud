@@ -2,10 +2,9 @@
 
 import { FormEvent, MouseEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, Menu, Phone, Search, ShoppingBag, Sun, X } from 'lucide-react';
-import { kits, materialCategories, products, projects } from './data/site';
+import { defaultSiteContent, type Product, type SiteContent } from './data/site';
 import { dictionary, localeNames, locales, type Locale } from './data/i18n';
 
-type Product = (typeof products)[number];
 type CategoryCopy = {
   title: string;
   text: string;
@@ -321,24 +320,26 @@ function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string
 function CatalogView({
   slug,
   locale,
+  siteContent,
   onOpenCatalog,
   onBack,
   onAdd,
 }: {
   slug: string;
   locale: Locale;
+  siteContent: SiteContent;
   onOpenCatalog: (slug?: string) => void;
   onBack: () => void;
   onAdd: (name: string) => void;
 }) {
   const content = dictionary[locale];
   const categories = content.categories as Record<string, CategoryCopy>;
-  const localizedCategories = materialCategories.map((category) => ({
+  const localizedCategories = siteContent.materialCategories.map((category) => ({
     ...category,
     ...categories[category.slug],
   }));
   const activeCategory = localizedCategories.find((category) => category.slug === slug);
-  const visibleProducts = slug === 'all' ? products : products.filter((product) => product.categorySlug === slug);
+  const visibleProducts = slug === 'all' ? siteContent.products : siteContent.products.filter((product) => product.categorySlug === slug);
 
   return (
     <main className="catalog-page">
@@ -363,12 +364,12 @@ function CatalogView({
   );
 }
 
-function ContactForm({ estimateCount }: { estimateCount: number }) {
+function ContactForm({ estimateItems }: { estimateItems: string[] }) {
   const [message, setMessage] = useState('');
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(`Заявка сохранена. Выбрано позиций: ${estimateCount}.`);
+    setMessage(`Заявка сохранена. Выбрано позиций: ${estimateItems.length}.`);
     event.currentTarget.reset();
   }
 
@@ -405,17 +406,16 @@ function ContactForm({ estimateCount }: { estimateCount: number }) {
   );
 }
 
-export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string | null }) {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === 'undefined') return 'ru';
-    const savedLocale = window.localStorage.getItem('almabuild-locale');
-    return savedLocale && locales.includes(savedLocale as Locale) ? savedLocale as Locale : 'ru';
-  });
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window === 'undefined') return 'dark';
-    const savedTheme = window.localStorage.getItem('almabuild-theme');
-    return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
-  });
+export function App({
+  initialCatalogSlug = null,
+  initialContent = defaultSiteContent,
+}: {
+  initialCatalogSlug?: string | null;
+  initialContent?: SiteContent;
+}) {
+  const siteContent = initialContent;
+  const [locale, setLocale] = useState<Locale>('ru');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
   const [toast, setToast] = useState('');
@@ -423,11 +423,27 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
 
   const localizedCategories = useMemo(() => {
     const categories = content.categories as Record<string, CategoryCopy>;
-    return materialCategories.map((category) => ({
+    return siteContent.materialCategories.map((category) => ({
       ...category,
       ...categories[category.slug],
     }));
-  }, [content.categories]);
+  }, [content.categories, siteContent.materialCategories]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const savedLocale = window.localStorage.getItem('almabuild-locale');
+      if (savedLocale && locales.includes(savedLocale as Locale)) {
+        setLocale(savedLocale as Locale);
+      }
+
+      const savedTheme = window.localStorage.getItem('almabuild-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        setTheme(savedTheme);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -493,6 +509,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
         <CatalogView
           slug={catalogSlug}
           locale={locale}
+          siteContent={siteContent}
           onOpenCatalog={openCatalog}
           onBack={backToSite}
           onAdd={addMaterial}
@@ -512,7 +529,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
                 </div>
               </div>
               <div className="hero-panel">
-                <ProductArt product={products[2]} tall />
+                <ProductArt product={siteContent.products[2] || siteContent.products[0]} tall />
                 <div>
                   <b>ALMATY</b>
                   <span>materials / fit-out / launch</span>
@@ -554,9 +571,9 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
               <h2>Сопутствующие товары</h2>
               <button className="text-button" type="button" onClick={() => openCatalog()}>Все товары</button>
             </div>
-            <InteractiveMaterialsWindow items={products.slice(2, 7)} onAdd={addMaterial} />
+            <InteractiveMaterialsWindow items={siteContent.products.slice(2, 7)} onAdd={addMaterial} />
             <div className="product-grid">
-              {products.slice(0, 8).map((product, index) => (
+              {siteContent.products.slice(0, 8).map((product, index) => (
                 <ProductTile key={product.title} product={product} onAdd={addMaterial} large={index === 1 || index === 4} />
               ))}
             </div>
@@ -565,7 +582,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           <section className="project-section" id="projects">
             <SectionTitle eyebrow="[ПРОЕКТЫ]" title="Коммерческие пространства" text="Магазины, аптеки и салоны, где материалы, сроки и работы собраны в управляемый процесс." />
             <div className="project-grid">
-              {projects.map((project, index) => (
+              {siteContent.projects.map((project, index) => (
                 <article key={project.title}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <h3>{project.title}</h3>
@@ -579,7 +596,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
           <section className="kits-section">
             <SectionTitle eyebrow="[КОМПЛЕКТЫ]" title="Готовые наборы под объект" />
             <div className="kit-grid">
-              {kits.map((kit) => (
+              {siteContent.kits.map((kit) => (
                 <article key={kit.title}>
                   <BriefcaseBusiness size={22} />
                   <h3>{kit.title}</h3>
@@ -602,7 +619,7 @@ export function App({ initialCatalogSlug = null }: { initialCatalogSlug?: string
                 ) : <p>Материалы пока не выбраны</p>}
               </div>
             </div>
-            <ContactForm estimateCount={estimateItems.length} />
+            <ContactForm estimateItems={estimateItems} />
           </section>
 
           <footer className="site-footer" id="contact">

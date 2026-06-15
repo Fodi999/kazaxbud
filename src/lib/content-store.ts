@@ -41,6 +41,19 @@ export function normalizeSiteContent(value: unknown): SiteContent {
       detailImageUrl: normalizeString(item.detailImageUrl),
       price: normalizeString(item.price),
       categorySlug: normalizeString(item.categorySlug),
+      unit: normalizeString(item.unit),
+      availability: normalizeString(item.availability),
+      city: normalizeString(item.city),
+      supplier: normalizeString(item.supplier),
+      purchasePrice: normalizeString(item.purchasePrice),
+      purchaseCurrency: normalizeString(item.purchaseCurrency),
+      salePrice: normalizeString(item.salePrice),
+      saleCurrency: normalizeString(item.saleCurrency),
+      marginPercent: normalizeString(item.marginPercent),
+      status: normalizeString(item.status),
+      languages: normalizeStringArray(item.languages),
+      seoTitle: normalizeString(item.seoTitle),
+      seoDescription: normalizeString(item.seoDescription),
     })).filter((item) => item.slug && item.title)
     : defaultSiteContent.materialCategories;
 

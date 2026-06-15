@@ -112,9 +112,7 @@ export async function readLeads() {
 }
 
 export async function createLead(form: FormData) {
-  const lead: Lead = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+  const payload = {
     name: normalizeString(form.get('name')),
     phone: normalizeString(form.get('phone')),
     type: normalizeString(form.get('type')),
@@ -123,9 +121,30 @@ export async function createLead(form: FormData) {
     items: normalizeStringArray(form.getAll('items')),
   };
 
-  if (!lead.phone) {
+  if (!payload.phone) {
     throw new Error('Phone is required');
   }
+
+  try {
+    const response = await fetch(`${backendUrl}/public/almabuild/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      return await response.json() as Lead;
+    }
+  } catch (error) {
+    console.warn('Unable to submit ALMABUILD lead to backend', error);
+  }
+
+  const lead: Lead = {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    ...payload,
+  };
 
   const leads = await readLeads();
   const nextLeads = [lead, ...leads].slice(0, 300);

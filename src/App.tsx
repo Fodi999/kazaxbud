@@ -366,15 +366,37 @@ function CatalogView({
 
 function ContactForm({ estimateItems }: { estimateItems: string[] }) {
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(`Заявка сохранена. Выбрано позиций: ${estimateItems.length}.`);
-    event.currentTarget.reset();
+    setSubmitting(true);
+    setMessage('Отправляем заявку...');
+
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        body: new FormData(event.currentTarget),
+      });
+
+      if (!response.ok) {
+        throw new Error('Lead submit failed');
+      }
+
+      setMessage(`Заявка сохранена в CRM. Выбрано позиций: ${estimateItems.length}.`);
+      event.currentTarget.reset();
+    } catch {
+      setMessage('Не удалось отправить заявку. Проверьте телефон и попробуйте еще раз.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <form className="estimate-form" onSubmit={submit}>
+      {estimateItems.map((item, index) => (
+        <input key={`${item}-${index}`} type="hidden" name="items" value={item} />
+      ))}
       <label>
         <span>Имя</span>
         <input name="name" placeholder="Дмитрий" />
@@ -400,7 +422,7 @@ function ContactForm({ estimateItems }: { estimateItems: string[] }) {
         <span>Что нужно сделать</span>
         <textarea name="comment" placeholder="Отделка, материалы, электрика, сроки открытия" />
       </label>
-      <button type="submit">Отправить заявку <ArrowRight size={18} /></button>
+      <button type="submit" disabled={submitting}>{submitting ? 'Отправляем' : 'Отправить заявку'} <ArrowRight size={18} /></button>
       <p>{message}</p>
     </form>
   );

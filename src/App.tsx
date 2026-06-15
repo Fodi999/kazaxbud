@@ -617,6 +617,7 @@ export function App({
                   {category.imageUrl ? <img className="category-image" src={category.imageUrl} alt={category.title} loading="lazy" /> : null}
                   <h3>{category.title}</h3>
                   <p>{category.text}</p>
+                  {category.price ? <em className="category-price">{category.price}</em> : null}
                   <b><ArrowRight size={18} /></b>
                 </button>
               ))}

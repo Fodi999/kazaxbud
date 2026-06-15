@@ -42,6 +42,9 @@ export const materialCategories = [
     bullets: ['Листы ГКЛ', 'Профили и направляющие', 'Подвесы и крепёж', 'Комплектующие'],
     photo: 'material-drywall',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
   {
     index: '[0:2]',
@@ -51,6 +54,9 @@ export const materialCategories = [
     bullets: ['Штукатурки и шпаклёвки', 'Плиточный клей', 'Наливные полы', 'Грунтовки и добавки'],
     photo: 'material-mixes',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
   {
     index: '[0:3]',
@@ -60,6 +66,9 @@ export const materialCategories = [
     bullets: ['Керамогранит и плитка', 'Кварцвинил и ламинат', 'Плинтусы и пороги', 'Затирки и клеи'],
     photo: 'material-flooring',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
   {
     index: '[0:4]',
@@ -69,6 +78,9 @@ export const materialCategories = [
     bullets: ['Кабель и провода', 'Автоматы и щиты', 'Розетки и выключатели', 'Светильники и LED-решения'],
     photo: 'material-electric',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
   {
     index: '[0:5]',
@@ -78,6 +90,9 @@ export const materialCategories = [
     bullets: ['Армстронг и грильято', 'Гипсокартонные потолки', 'Подвесные системы', 'Комплектующие'],
     photo: 'material-ceiling',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
   {
     index: '[0:6]',
@@ -87,6 +102,9 @@ export const materialCategories = [
     bullets: ['OSB и фанера', 'Минеральная вата', 'Гидроизоляция', 'Мембраны и плёнки'],
     photo: 'material-osb',
     imageUrl: '',
+    detailImageUrl: '',
+    price: '',
+    categorySlug: '',
   },
 ];
 

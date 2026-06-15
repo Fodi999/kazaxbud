@@ -879,13 +879,26 @@ button {
 }
 
 .category-grid button:hover p,
-.category-grid button:hover span {
+.category-grid button:hover span,
+.category-grid button:hover .category-price {
   color: #333;
 }
 
 .category-grid span {
   color: var(--muted);
   font-family: var(--mono);
+}
+
+.category-price {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid currentColor;
+  padding: 8px 10px;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .category-image {

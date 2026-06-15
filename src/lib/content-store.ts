@@ -38,6 +38,9 @@ export function normalizeSiteContent(value: unknown): SiteContent {
       bullets: normalizeStringArray(item.bullets),
       photo: normalizeString(item.photo),
       imageUrl: normalizeString(item.imageUrl),
+      detailImageUrl: normalizeString(item.detailImageUrl),
+      price: normalizeString(item.price),
+      categorySlug: normalizeString(item.categorySlug),
     })).filter((item) => item.slug && item.title)
     : defaultSiteContent.materialCategories;
 

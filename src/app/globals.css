@@ -888,6 +888,19 @@ button {
   font-family: var(--mono);
 }
 
+.category-image {
+  width: min(100%, 360px);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  filter: grayscale(1) contrast(1.05);
+}
+
+.category-grid button:hover .category-image {
+  border-color: color-mix(in srgb, var(--bg) 55%, transparent);
+  filter: grayscale(.15) contrast(1.05);
+}
+
 .category-grid b {
   position: absolute;
   right: -1px;

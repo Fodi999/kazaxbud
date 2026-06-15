@@ -614,6 +614,7 @@ export function App({
               {localizedCategories.map((category) => (
                 <button key={category.slug} type="button" onClick={() => openCatalog(category.slug)}>
                   <span>{category.index}</span>
+                  {category.imageUrl ? <img className="category-image" src={category.imageUrl} alt={category.title} loading="lazy" /> : null}
                   <h3>{category.title}</h3>
                   <p>{category.text}</p>
                   <b><ArrowRight size={18} /></b>

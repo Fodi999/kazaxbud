@@ -12,6 +12,7 @@ type CategoryCopy = {
 };
 
 const navAnchors = ['#services', '#materials', '#projects', '#estimate', '#contact'] as const;
+const backendUrl = (process.env.NEXT_PUBLIC_KAZAXBUD_BACKEND_URL || 'https://ministerial-yetta-fodi999-c58d8823.koyeb.app').replace(/\/+$/, '');
 const navLabels: Record<Locale, string[]> = {
   ru: ['Услуги', 'Материалы', 'Проекты', 'Смета', 'Контакты'],
   kk: ['Қызметтер', 'Материалдар', 'Жобалар', 'Смета', 'Байланыс'],
@@ -374,9 +375,18 @@ function ContactForm({ estimateItems }: { estimateItems: string[] }) {
     setMessage('Отправляем заявку...');
 
     try {
-      const response = await fetch('/api/leads', {
+      const formData = new FormData(event.currentTarget);
+      const response = await fetch(`${backendUrl}/public/almabuild/leads`, {
         method: 'POST',
-        body: new FormData(event.currentTarget),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(formData.get('name') || ''),
+          phone: String(formData.get('phone') || ''),
+          type: String(formData.get('type') || ''),
+          area: String(formData.get('area') || ''),
+          comment: String(formData.get('comment') || ''),
+          items: formData.getAll('items').map((item) => String(item)).filter(Boolean),
+        }),
       });
 
       if (!response.ok) {
@@ -435,10 +445,10 @@ export function App({
   initialCatalogSlug?: string | null;
   initialContent?: SiteContent;
 }) {
-  const siteContent = initialContent;
   const [locale, setLocale] = useState<Locale>('ru');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
+  const [siteContent, setSiteContent] = useState<SiteContent>(initialContent);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
   const [toast, setToast] = useState('');
   const content = dictionary[locale];
@@ -465,6 +475,30 @@ export function App({
     }, 0);
 
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadContent() {
+      try {
+        const response = await fetch(`${backendUrl}/public/almabuild/content`, {
+          cache: 'no-store',
+        });
+
+        if (response.ok && active) {
+          setSiteContent(await response.json() as SiteContent);
+        }
+      } catch {
+        // Build-time content remains visible if backend is unavailable.
+      }
+    }
+
+    void loadContent();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

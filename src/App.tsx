@@ -454,7 +454,7 @@ function ProjectView({
   onEstimate: () => void;
 }) {
   const localizedProjects = siteContent.projects.map((project) => localizeProject(project, locale));
-  const project = localizedProjects.find((item) => item.slug === slug) || localizedProjects[0];
+  const project = localizedProjects.find((item) => item.slug === slug);
   const images = [project?.photo || '', ...(project?.imageUrls || [])].filter((url) => /^https?:\/\//i.test(url));
 
   if (!project) {
@@ -661,6 +661,7 @@ export function App({
       setCatalogSlug(getCatalogSlugFromPath());
       setProjectSlug(getProjectSlugFromPath());
     };
+    syncRoute();
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
   }, []);

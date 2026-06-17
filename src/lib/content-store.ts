@@ -104,6 +104,7 @@ export function normalizeSiteContent(value: unknown): SiteContent {
 
   const projects = Array.isArray(source.projects)
     ? source.projects.map((item) => ({
+      slug: normalizeString(item.slug),
       title: normalizeString(item.title),
       titleRu: normalizeString(item.titleRu),
       titleKk: normalizeString(item.titleKk),
@@ -112,7 +113,24 @@ export function normalizeSiteContent(value: unknown): SiteContent {
       metaRu: normalizeString(item.metaRu),
       metaKk: normalizeString(item.metaKk),
       metaEn: normalizeString(item.metaEn),
+      seoTitle: normalizeString(item.seoTitle),
+      seoTitleRu: normalizeString(item.seoTitleRu),
+      seoTitleKk: normalizeString(item.seoTitleKk),
+      seoTitleEn: normalizeString(item.seoTitleEn),
+      seoDescription: normalizeString(item.seoDescription),
+      seoDescriptionRu: normalizeString(item.seoDescriptionRu),
+      seoDescriptionKk: normalizeString(item.seoDescriptionKk),
+      seoDescriptionEn: normalizeString(item.seoDescriptionEn),
+      pageTitle: normalizeString(item.pageTitle),
+      pageTitleRu: normalizeString(item.pageTitleRu),
+      pageTitleKk: normalizeString(item.pageTitleKk),
+      pageTitleEn: normalizeString(item.pageTitleEn),
+      pageText: normalizeString(item.pageText),
+      pageTextRu: normalizeString(item.pageTextRu),
+      pageTextKk: normalizeString(item.pageTextKk),
+      pageTextEn: normalizeString(item.pageTextEn),
       photo: normalizeString(item.photo),
+      imageUrls: normalizeStringArray(item.imageUrls),
     })).filter((item) => item.title)
     : defaultSiteContent.projects;
 

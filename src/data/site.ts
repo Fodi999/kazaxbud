@@ -212,9 +212,9 @@ export const kits = [
 ].map(([title, text, items]) => ({ title: title as string, text: text as string, items: items as string[] }));
 
 export const projects = [
-  { title: 'BUTIK KZ', meta: 'Магазин одежды · 320 м² · 28 дней', photo: 'photo-retail' },
-  { title: 'Green Mart', meta: 'Супермаркет · 1250 м² · 45 дней', photo: 'photo-office' },
-  { title: 'Europharma', meta: 'Аптека · 110 м² · 18 дней', photo: 'photo-building' },
+  { slug: 'butik-kz', title: 'BUTIK KZ', meta: 'Магазин одежды · 320 м² · 28 дней', seoTitle: 'BUTIK KZ: отделка магазина под ключ в Алматы', seoDescription: 'Кейс коммерческой отделки магазина одежды BUTIK KZ: материалы, сроки, комплектация и контроль работ в Алматы.', pageTitle: 'Отделка магазина одежды BUTIK KZ', pageText: 'Проект BUTIK KZ показывает, как коммерческое пространство можно подготовить к открытию в управляемом процессе: материалы, поставка, отделка и контроль сроков собраны в одну рабочую схему.\n\nДля объекта были важны аккуратная отделка торгового зала, понятная логистика материалов и выдержанный срок запуска. Такой формат подходит магазинам, бутикам и шоурумам, где простой помещения напрямую влияет на выручку.', photo: 'photo-retail', imageUrls: [] as string[] },
+  { slug: 'green-mart', title: 'Green Mart', meta: 'Супермаркет · 1250 м² · 45 дней', seoTitle: 'Green Mart: отделка супермаркета и поставка материалов', seoDescription: 'Кейс ALMABUILD по подготовке супермаркета Green Mart: материалы, сроки, поставка и контроль подрядных работ.', pageTitle: 'Коммерческая отделка супермаркета Green Mart', pageText: 'Green Mart - пример объекта, где важны масштаб, последовательность работ и точная комплектация материалами. Для супермаркета нужно синхронизировать поставку, монтаж и технические зоны.\n\nALMABUILD ведет такие проекты через смету, контроль поставок и понятные этапы отделки, чтобы пространство было готово к запуску без хаоса на объекте.', photo: 'photo-office', imageUrls: [] as string[] },
+  { slug: 'europharma', title: 'Europharma', meta: 'Аптека · 110 м² · 18 дней', seoTitle: 'Europharma: отделка аптеки под ключ в Алматы', seoDescription: 'Кейс отделки аптеки Europharma: аккуратные материалы, свет, сроки и подготовка помещения к открытию.', pageTitle: 'Отделка аптеки Europharma', pageText: 'Для аптек важны аккуратная чистая отделка, свет, удобная навигация и быстрый запуск торгового зала. Europharma - компактный проект, где срок и качество деталей имеют одинаковый вес.\n\nТакие объекты требуют точной комплектации материалов, контроля этапов и понятной коммуникации с заказчиком до открытия.', photo: 'photo-building', imageUrls: [] as string[] },
 ];
 
 export const photoClasses: Record<string, string> = {
@@ -265,12 +265,30 @@ export type Kit = (typeof kits)[number] & {
   itemsEn?: string[];
 };
 export type Project = (typeof projects)[number] & {
+  slug?: string;
   titleRu?: string;
   titleKk?: string;
   titleEn?: string;
   metaRu?: string;
   metaKk?: string;
   metaEn?: string;
+  seoTitle?: string;
+  seoTitleRu?: string;
+  seoTitleKk?: string;
+  seoTitleEn?: string;
+  seoDescription?: string;
+  seoDescriptionRu?: string;
+  seoDescriptionKk?: string;
+  seoDescriptionEn?: string;
+  pageTitle?: string;
+  pageTitleRu?: string;
+  pageTitleKk?: string;
+  pageTitleEn?: string;
+  pageText?: string;
+  pageTextRu?: string;
+  pageTextKk?: string;
+  pageTextEn?: string;
+  imageUrls?: string[];
 };
 
 export type SiteContent = {

@@ -33,6 +33,15 @@ function localizedList<T extends Record<string, unknown>>(item: T, key: string, 
   return fallback.length ? fallback : Array.isArray(base) ? base.map(String) : [];
 }
 
+function slugifyProject(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9а-яёіїєґ]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 88);
+}
+
 function localizeCategory(category: SiteContent['materialCategories'][number], locale: Locale, fallback?: CategoryCopy) {
   return {
     ...category,
@@ -65,6 +74,10 @@ function localizeProject(project: SiteContent['projects'][number], locale: Local
     ...project,
     title: localizedString(project, 'title', locale),
     meta: localizedString(project, 'meta', locale),
+    seoTitle: localizedString(project, 'seoTitle', locale),
+    seoDescription: localizedString(project, 'seoDescription', locale),
+    pageTitle: localizedString(project, 'pageTitle', locale),
+    pageText: localizedString(project, 'pageText', locale),
   };
 }
 
@@ -90,6 +103,13 @@ function getCatalogSlugFromPath() {
   if (!window.location.pathname.startsWith('/catalog')) return null;
   const slug = window.location.pathname.replace(/^\/catalog\/?/, '');
   return slug ? decodeURIComponent(slug) : 'all';
+}
+
+function getProjectSlugFromPath() {
+  if (typeof window === 'undefined') return null;
+  if (!window.location.pathname.startsWith('/projects')) return null;
+  const slug = window.location.pathname.replace(/^\/projects\/?/, '');
+  return slug ? decodeURIComponent(slug) : null;
 }
 
 function MonoLogo() {
@@ -420,6 +440,73 @@ function CatalogView({
   );
 }
 
+function ProjectView({
+  slug,
+  locale,
+  siteContent,
+  onBack,
+  onEstimate,
+}: {
+  slug: string;
+  locale: Locale;
+  siteContent: SiteContent;
+  onBack: () => void;
+  onEstimate: () => void;
+}) {
+  const localizedProjects = siteContent.projects.map((project) => localizeProject(project, locale));
+  const project = localizedProjects.find((item) => item.slug === slug) || localizedProjects[0];
+  const images = [project?.photo || '', ...(project?.imageUrls || [])].filter((url) => /^https?:\/\//i.test(url));
+
+  if (!project) {
+    return (
+      <main className="project-page">
+        <section className="catalog-hero">
+          <button className="text-button" type="button" onClick={onBack}>Назад на сайт</button>
+          <p>[ПРОЕКТ]</p>
+          <h1>Проект не найден</h1>
+          <span>Вернитесь к списку коммерческих пространств.</span>
+        </section>
+      </main>
+    );
+  }
+
+  const pageTitle = project.pageTitle || project.title;
+  const pageText = project.pageText || project.seoDescription || project.meta;
+  const paragraphs = pageText.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+
+  return (
+    <main className="project-page">
+      <section className="project-page-hero">
+        <button className="text-button" type="button" onClick={onBack}>Назад к проектам</button>
+        <p>[ПРОЕКТ]</p>
+        <h1>{pageTitle}</h1>
+        <span>{project.seoDescription || project.meta}</span>
+        <div className="project-page-meta">
+          <b>{project.title}</b>
+          <span>{project.meta}</span>
+          <button type="button" onClick={onEstimate}>Обсудить похожий объект</button>
+        </div>
+      </section>
+      <section className="project-page-body">
+        <article>
+          <p className="eyebrow">SEO / case page</p>
+          {paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </article>
+        <aside>
+          <span>scope</span>
+          <b>fit-out / supply / control</b>
+          <p>Комплектация материалов, организация работ и контроль запуска коммерческого пространства.</p>
+        </aside>
+      </section>
+      {images.length ? (
+        <section className="project-page-gallery">
+          {images.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${project.title} фото ${index + 1}`} loading="lazy" />)}
+        </section>
+      ) : null}
+    </main>
+  );
+}
+
 function ContactForm({ estimateItems }: { estimateItems: string[] }) {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -495,14 +582,17 @@ function ContactForm({ estimateItems }: { estimateItems: string[] }) {
 
 export function App({
   initialCatalogSlug = null,
+  initialProjectSlug = null,
   initialContent = defaultSiteContent,
 }: {
   initialCatalogSlug?: string | null;
+  initialProjectSlug?: string | null;
   initialContent?: SiteContent;
 }) {
   const [locale, setLocale] = useState<Locale>('ru');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [catalogSlug, setCatalogSlug] = useState<string | null>(initialCatalogSlug);
+  const [projectSlug, setProjectSlug] = useState<string | null>(initialProjectSlug);
   const [siteContent, setSiteContent] = useState<SiteContent>(initialContent);
   const [estimateItems, setEstimateItems] = useState<string[]>([]);
   const [toast, setToast] = useState('');
@@ -567,7 +657,10 @@ export function App({
   }, [theme]);
 
   useEffect(() => {
-    const syncRoute = () => setCatalogSlug(getCatalogSlugFromPath());
+    const syncRoute = () => {
+      setCatalogSlug(getCatalogSlugFromPath());
+      setProjectSlug(getProjectSlugFromPath());
+    };
     window.addEventListener('popstate', syncRoute);
     return () => window.removeEventListener('popstate', syncRoute);
   }, []);
@@ -582,18 +675,29 @@ export function App({
     const path = slug === 'all' ? '/catalog' : `/catalog/${slug}`;
     window.history.pushState({}, '', path);
     setCatalogSlug(slug);
+    setProjectSlug(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openProject(project: SiteContent['projects'][number]) {
+    const slug = project.slug || slugifyProject(project.title);
+    window.history.pushState({}, '', `/projects/${slug}`);
+    setCatalogSlug(null);
+    setProjectSlug(slug);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function backToSite() {
-    window.history.pushState({}, '', '/#materials');
+    window.history.pushState({}, '', catalogSlug !== null ? '/#materials' : '/#projects');
     setCatalogSlug(null);
-    window.requestAnimationFrame(() => scrollToId('#materials'));
+    setProjectSlug(null);
+    window.requestAnimationFrame(() => scrollToId(catalogSlug !== null ? '#materials' : '#projects'));
   }
 
   function goToEstimate() {
     window.history.pushState({}, '', '/#estimate');
     setCatalogSlug(null);
+    setProjectSlug(null);
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => scrollToId('#estimate'));
     });
@@ -616,7 +720,15 @@ export function App({
       />
       {toast ? <div className="site-toast" role="status">{toast}</div> : null}
       <MobileBottomBar estimateCount={estimateItems.length} onEstimate={goToEstimate} />
-      {catalogSlug !== null ? (
+      {projectSlug !== null ? (
+        <ProjectView
+          slug={projectSlug}
+          locale={locale}
+          siteContent={siteContent}
+          onBack={backToSite}
+          onEstimate={goToEstimate}
+        />
+      ) : catalogSlug !== null ? (
         <CatalogView
           slug={catalogSlug}
           locale={locale}
@@ -696,12 +808,12 @@ export function App({
             <SectionTitle eyebrow="[ПРОЕКТЫ]" title="Коммерческие пространства" text="Магазины, аптеки и салоны, где материалы, сроки и работы собраны в управляемый процесс." />
             <div className="project-grid">
               {localizedProjects.map((project, index) => (
-                <article key={project.title}>
+                <button key={project.title} type="button" onClick={() => openProject(project)}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <h3>{project.title}</h3>
                   <p>{project.meta}</p>
                   <b>fit-out / supply / control</b>
-                </article>
+                </button>
               ))}
             </div>
           </section>

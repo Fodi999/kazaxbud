@@ -456,6 +456,9 @@ function ProjectView({
   const localizedProjects = siteContent.projects.map((project) => localizeProject(project, locale));
   const project = localizedProjects.find((item) => item.slug === slug);
   const images = [project?.photo || '', ...(project?.imageUrls || [])].filter((url) => /^https?:\/\//i.test(url));
+  const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   if (!project) {
     return (
@@ -473,6 +476,14 @@ function ProjectView({
   const pageTitle = project.pageTitle || project.title;
   const pageText = project.pageText || project.seoDescription || project.meta;
   const paragraphs = pageText.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  const activeUrl = images[activeImage] || images[0];
+
+  function showImage(index: number) {
+    if (!images.length) return;
+    const nextIndex = (index + images.length) % images.length;
+    setActiveImage(nextIndex);
+    setZoom(1);
+  }
 
   return (
     <main className="project-page">
@@ -499,8 +510,54 @@ function ProjectView({
         </aside>
       </section>
       {images.length ? (
-        <section className="project-page-gallery">
-          {images.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${project.title} фото ${index + 1}`} loading="lazy" />)}
+        <section className="project-page-gallery" aria-label={`${project.title} галерея`}>
+          <div className="project-gallery-head">
+            <div>
+              <p>gallery</p>
+              <h2>{project.title}</h2>
+            </div>
+            <span>{String(activeImage + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}</span>
+          </div>
+          <button className="project-gallery-stage" type="button" onClick={() => setLightboxOpen(true)} aria-label="Открыть фото на весь экран">
+            <img src={activeUrl} alt={`${project.title} фото ${activeImage + 1}`} />
+            <span>Открыть / zoom</span>
+          </button>
+          <div className="project-gallery-controls">
+            <button type="button" onClick={() => showImage(activeImage - 1)}>Назад</button>
+            <button type="button" onClick={() => setLightboxOpen(true)}>Увеличить</button>
+            <button type="button" onClick={() => showImage(activeImage + 1)}>Вперед</button>
+          </div>
+          <div className="project-gallery-strip">
+            {images.map((url, index) => (
+              <button key={`${url}-${index}`} className={activeImage === index ? 'active' : ''} type="button" onClick={() => showImage(index)}>
+                <img src={url} alt={`${project.title} миниатюра ${index + 1}`} loading="lazy" />
+                <span>{String(index + 1).padStart(2, '0')}</span>
+              </button>
+            ))}
+          </div>
+          {lightboxOpen ? (
+            <div className="project-lightbox" role="dialog" aria-modal="true" aria-label="Просмотр фото проекта" onClick={() => setLightboxOpen(false)}>
+              <div className="project-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+                <div className="project-lightbox-head">
+                  <strong>{project.title}</strong>
+                  <div>
+                    <button type="button" onClick={() => setZoom(1)}>1x</button>
+                    <button type="button" onClick={() => setZoom(1.5)}>1.5x</button>
+                    <button type="button" onClick={() => setZoom(2)}>2x</button>
+                    <button type="button" onClick={() => setLightboxOpen(false)}>Закрыть</button>
+                  </div>
+                </div>
+                <div className="project-lightbox-stage">
+                  <img src={activeUrl} alt={`${project.title} фото ${activeImage + 1}`} style={{ transform: `scale(${zoom})` }} />
+                </div>
+                <div className="project-gallery-controls">
+                  <button type="button" onClick={() => showImage(activeImage - 1)}>Назад</button>
+                  <span>{String(activeImage + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}</span>
+                  <button type="button" onClick={() => showImage(activeImage + 1)}>Вперед</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
     </main>

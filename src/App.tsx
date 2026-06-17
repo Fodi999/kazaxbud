@@ -11,6 +11,63 @@ type CategoryCopy = {
   bullets: string[];
 };
 
+function langSuffix(locale: Locale) {
+  if (locale === 'kk') return 'Kk';
+  if (locale === 'en') return 'En';
+  return 'Ru';
+}
+
+function localizedString<T extends Record<string, unknown>>(item: T, key: string, locale: Locale, fallback = '') {
+  const localized = item[`${key}${langSuffix(locale)}`];
+  if (typeof localized === 'string' && localized.trim()) return localized;
+  const base = item[key];
+  if (locale === 'ru' && typeof base === 'string' && base.trim()) return base;
+  return fallback || (typeof base === 'string' ? base : '');
+}
+
+function localizedList<T extends Record<string, unknown>>(item: T, key: string, locale: Locale, fallback: string[] = []) {
+  const localized = item[`${key}${langSuffix(locale)}`];
+  if (Array.isArray(localized) && localized.length) return localized.map(String);
+  const base = item[key];
+  if (locale === 'ru' && Array.isArray(base) && base.length) return base.map(String);
+  return fallback.length ? fallback : Array.isArray(base) ? base.map(String) : [];
+}
+
+function localizeCategory(category: SiteContent['materialCategories'][number], locale: Locale, fallback?: CategoryCopy) {
+  return {
+    ...category,
+    title: localizedString(category, 'title', locale, fallback?.title),
+    text: localizedString(category, 'text', locale, fallback?.text),
+    bullets: localizedList(category, 'bullets', locale, fallback?.bullets),
+  };
+}
+
+function localizeProduct(product: Product, locale: Locale): Product {
+  return {
+    ...product,
+    category: localizedString(product, 'category', locale),
+    title: localizedString(product, 'title', locale),
+    spec: localizedString(product, 'spec', locale),
+  };
+}
+
+function localizeKit(kit: SiteContent['kits'][number], locale: Locale) {
+  return {
+    ...kit,
+    title: localizedString(kit, 'title', locale),
+    text: localizedString(kit, 'text', locale),
+    items: localizedList(kit, 'items', locale),
+  };
+}
+
+function localizeProject(project: SiteContent['projects'][number], locale: Locale) {
+  return {
+    ...project,
+    title: localizedString(project, 'title', locale),
+    meta: localizedString(project, 'meta', locale),
+  };
+}
+
 const navAnchors = ['#services', '#materials', '#projects', '#estimate', '#contact'] as const;
 const backendUrl = (process.env.NEXT_PUBLIC_KAZAXBUD_BACKEND_URL || 'https://ministerial-yetta-fodi999-c58d8823.koyeb.app').replace(/\/+$/, '');
 const navLabels: Record<Locale, string[]> = {
@@ -335,12 +392,10 @@ function CatalogView({
 }) {
   const content = dictionary[locale];
   const categories = content.categories as Record<string, CategoryCopy>;
-  const localizedCategories = siteContent.materialCategories.map((category) => ({
-    ...category,
-    ...categories[category.slug],
-  }));
+  const localizedCategories = siteContent.materialCategories.map((category) => localizeCategory(category, locale, categories[category.slug]));
   const activeCategory = localizedCategories.find((category) => category.slug === slug);
-  const visibleProducts = slug === 'all' ? siteContent.products : siteContent.products.filter((product) => product.categorySlug === slug);
+  const visibleProducts = (slug === 'all' ? siteContent.products : siteContent.products.filter((product) => product.categorySlug === slug))
+    .map((product) => localizeProduct(product, locale));
 
   return (
     <main className="catalog-page">
@@ -455,11 +510,11 @@ export function App({
 
   const localizedCategories = useMemo(() => {
     const categories = content.categories as Record<string, CategoryCopy>;
-    return siteContent.materialCategories.map((category) => ({
-      ...category,
-      ...categories[category.slug],
-    }));
-  }, [content.categories, siteContent.materialCategories]);
+    return siteContent.materialCategories.map((category) => localizeCategory(category, locale, categories[category.slug]));
+  }, [content.categories, locale, siteContent.materialCategories]);
+  const localizedProducts = useMemo(() => siteContent.products.map((product) => localizeProduct(product, locale)), [locale, siteContent.products]);
+  const localizedKits = useMemo(() => siteContent.kits.map((kit) => localizeKit(kit, locale)), [locale, siteContent.kits]);
+  const localizedProjects = useMemo(() => siteContent.projects.map((project) => localizeProject(project, locale)), [locale, siteContent.projects]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -585,7 +640,7 @@ export function App({
                 </div>
               </div>
               <div className="hero-panel">
-                <ProductArt product={siteContent.products[2] || siteContent.products[0]} tall />
+                <ProductArt product={localizedProducts[2] || localizedProducts[0] || siteContent.products[0]} tall />
                 <div>
                   <b>ALMATY</b>
                   <span>materials / fit-out / launch</span>
@@ -629,9 +684,9 @@ export function App({
               <h2>Сопутствующие товары</h2>
               <button className="text-button" type="button" onClick={() => openCatalog()}>Все товары</button>
             </div>
-            <InteractiveMaterialsWindow items={siteContent.products.slice(2, 7)} onAdd={addMaterial} />
+            <InteractiveMaterialsWindow items={localizedProducts.slice(2, 7)} onAdd={addMaterial} />
             <div className="product-grid">
-              {siteContent.products.slice(0, 8).map((product, index) => (
+              {localizedProducts.slice(0, 8).map((product, index) => (
                 <ProductTile key={product.title} product={product} onAdd={addMaterial} large={index === 1 || index === 4} />
               ))}
             </div>
@@ -640,7 +695,7 @@ export function App({
           <section className="project-section" id="projects">
             <SectionTitle eyebrow="[ПРОЕКТЫ]" title="Коммерческие пространства" text="Магазины, аптеки и салоны, где материалы, сроки и работы собраны в управляемый процесс." />
             <div className="project-grid">
-              {siteContent.projects.map((project, index) => (
+              {localizedProjects.map((project, index) => (
                 <article key={project.title}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <h3>{project.title}</h3>
@@ -654,7 +709,7 @@ export function App({
           <section className="kits-section">
             <SectionTitle eyebrow="[КОМПЛЕКТЫ]" title="Готовые наборы под объект" />
             <div className="kit-grid">
-              {siteContent.kits.map((kit) => (
+              {localizedKits.map((kit) => (
                 <article key={kit.title}>
                   <BriefcaseBusiness size={22} />
                   <h3>{kit.title}</h3>

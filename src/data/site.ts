@@ -231,10 +231,47 @@ export const photoClasses: Record<string, string> = {
   'material-osb': 'bg-[linear-gradient(90deg,rgba(246,243,235,0)_0%,rgba(246,243,235,.15)_100%),url("https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=900&q=80")]',
 };
 
-export type MaterialCategory = (typeof materialCategories)[number];
-export type Product = (typeof products)[number];
-export type Kit = (typeof kits)[number];
-export type Project = (typeof projects)[number];
+export type MaterialCategory = (typeof materialCategories)[number] & {
+  titleRu?: string;
+  titleKk?: string;
+  titleEn?: string;
+  textRu?: string;
+  textKk?: string;
+  textEn?: string;
+  bulletsRu?: string[];
+  bulletsKk?: string[];
+  bulletsEn?: string[];
+};
+export type Product = (typeof products)[number] & {
+  categoryRu?: string;
+  categoryKk?: string;
+  categoryEn?: string;
+  titleRu?: string;
+  titleKk?: string;
+  titleEn?: string;
+  specRu?: string;
+  specKk?: string;
+  specEn?: string;
+};
+export type Kit = (typeof kits)[number] & {
+  titleRu?: string;
+  titleKk?: string;
+  titleEn?: string;
+  textRu?: string;
+  textKk?: string;
+  textEn?: string;
+  itemsRu?: string[];
+  itemsKk?: string[];
+  itemsEn?: string[];
+};
+export type Project = (typeof projects)[number] & {
+  titleRu?: string;
+  titleKk?: string;
+  titleEn?: string;
+  metaRu?: string;
+  metaKk?: string;
+  metaEn?: string;
+};
 
 export type SiteContent = {
   materialCategories: MaterialCategory[];

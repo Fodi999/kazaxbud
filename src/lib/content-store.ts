@@ -34,8 +34,17 @@ export function normalizeSiteContent(value: unknown): SiteContent {
       index: normalizeString(item.index) || `[0:${index + 1}]`,
       slug: normalizeString(item.slug),
       title: normalizeString(item.title),
+      titleRu: normalizeString(item.titleRu),
+      titleKk: normalizeString(item.titleKk),
+      titleEn: normalizeString(item.titleEn),
       text: normalizeString(item.text),
+      textRu: normalizeString(item.textRu),
+      textKk: normalizeString(item.textKk),
+      textEn: normalizeString(item.textEn),
       bullets: normalizeStringArray(item.bullets),
+      bulletsRu: normalizeStringArray(item.bulletsRu),
+      bulletsKk: normalizeStringArray(item.bulletsKk),
+      bulletsEn: normalizeStringArray(item.bulletsEn),
       photo: normalizeString(item.photo),
       imageUrl: normalizeString(item.imageUrl),
       detailImageUrl: normalizeString(item.detailImageUrl),
@@ -61,8 +70,17 @@ export function normalizeSiteContent(value: unknown): SiteContent {
     ? source.products.map((item) => ({
       categorySlug: normalizeString(item.categorySlug),
       category: normalizeString(item.category),
+      categoryRu: normalizeString(item.categoryRu),
+      categoryKk: normalizeString(item.categoryKk),
+      categoryEn: normalizeString(item.categoryEn),
       title: normalizeString(item.title),
+      titleRu: normalizeString(item.titleRu),
+      titleKk: normalizeString(item.titleKk),
+      titleEn: normalizeString(item.titleEn),
       spec: normalizeString(item.spec),
+      specRu: normalizeString(item.specRu),
+      specKk: normalizeString(item.specKk),
+      specEn: normalizeString(item.specEn),
       photo: normalizeString(item.photo),
     })).filter((item) => item.categorySlug && item.title)
     : defaultSiteContent.products;
@@ -70,15 +88,30 @@ export function normalizeSiteContent(value: unknown): SiteContent {
   const kits = Array.isArray(source.kits)
     ? source.kits.map((item) => ({
       title: normalizeString(item.title),
+      titleRu: normalizeString(item.titleRu),
+      titleKk: normalizeString(item.titleKk),
+      titleEn: normalizeString(item.titleEn),
       text: normalizeString(item.text),
+      textRu: normalizeString(item.textRu),
+      textKk: normalizeString(item.textKk),
+      textEn: normalizeString(item.textEn),
       items: normalizeStringArray(item.items),
+      itemsRu: normalizeStringArray(item.itemsRu),
+      itemsKk: normalizeStringArray(item.itemsKk),
+      itemsEn: normalizeStringArray(item.itemsEn),
     })).filter((item) => item.title)
     : defaultSiteContent.kits;
 
   const projects = Array.isArray(source.projects)
     ? source.projects.map((item) => ({
       title: normalizeString(item.title),
+      titleRu: normalizeString(item.titleRu),
+      titleKk: normalizeString(item.titleKk),
+      titleEn: normalizeString(item.titleEn),
       meta: normalizeString(item.meta),
+      metaRu: normalizeString(item.metaRu),
+      metaKk: normalizeString(item.metaKk),
+      metaEn: normalizeString(item.metaEn),
       photo: normalizeString(item.photo),
     })).filter((item) => item.title)
     : defaultSiteContent.projects;
